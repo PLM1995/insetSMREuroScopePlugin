@@ -17,11 +17,11 @@ namespace PLM1995forEuroScope
             PLUGIN_NAME,
             sender.c_str(),
             message.c_str(),
-            true,   // blinking
+            false,  // blinking
             false,  // warning
             false,  // high priority
-            true,   // persistent
-            true    // requires acknowledgement
+            false,  // persistent
+            false   // requires acknowledgement
         );
     }
 /*
@@ -34,4 +34,14 @@ namespace PLM1995forEuroScope
         }
     }
 */
+    void PLM1995forEuroScope::OnFlightPlanControllerAssignedDataUpdate(EuroScopePlugIn::CFlightPlan FlightPlan, int DataType) {
+        if (DataType == EuroScopePlugIn::CTR_DATA_TYPE_GROUND_STATE){
+            std::string Callsign = FlightPlan.GetCallsign();
+            std::string GroundState = FlightPlan.GetGroundState();
+            DisplayMessage(GroundState, Callsign); // Debugging printout
+            if (GroundState == "PUSH") {
+                // TODO: Draw warning arc behind aircraft
+            }
+        }
+    }
 }

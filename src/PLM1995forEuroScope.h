@@ -18,5 +18,6 @@ namespace PLM1995forEuroScope
                             const std::string &sender = "PLM1995");
 
 //        virtual void OnTimer(int secs);
+        virtual void OnFlightPlanControllerAssignedDataUpdate(EuroScopePlugIn::CFlightPlan FlightPlan, int DataType);
     };
 }
