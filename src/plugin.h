@@ -15,6 +15,6 @@ namespace myPlugIn
         ~myPlugIn();
 
         void DisplayMessage(const std::string &message,
-                            const std::string &sender = "myPlugIn");
+                            const std::string &sender = "PLM1995");
     };
 }
