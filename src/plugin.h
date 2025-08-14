@@ -16,5 +16,7 @@ namespace myPlugIn
 
         void DisplayMessage(const std::string &message,
                             const std::string &sender = "PLM1995");
+
+        virtual void OnTimer(int id);
     };
 }

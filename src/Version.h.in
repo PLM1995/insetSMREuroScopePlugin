@@ -1,7 +1,7 @@
 #pragma once
 
 namespace {
-const char *PLUGIN_NAME{ "PLM1995EuroScopePlugin" };
+const char *PLUGIN_NAME{ "PLM1995" };
 const char *PLUGIN_VERSION{ "@CMAKE_PROJECT_VERSION@" };
 const char *PLUGIN_AUTHOR{ "PLM1995" };
 const char *PLUGIN_LICENSE{ "GPLv3" };

@@ -13,6 +13,24 @@ namespace myPlugIn
 
     void myPlugIn::DisplayMessage(const std::string &message, const std::string &sender)
     {
-        DisplayUserMessage(PLUGIN_NAME, sender.c_str(), message.c_str(), true, false, false, false, false);
+        DisplayUserMessage(
+            PLUGIN_NAME,
+            sender.c_str(),
+            message.c_str(),
+            true,   // blinking
+            false,  // not a warning
+            false,  // not high priority
+            true,   // persistent
+            true    // must be acknowledged
+        );
+    }
+
+    void myPlugIn::OnTimer(int id) {
+        if(id % 2 == 0) {
+            DisplayMessage("Meow", "Cat");
+        }
+        else {
+            DisplayMessage("Woof", "Dog");
+        }
     }
 }
