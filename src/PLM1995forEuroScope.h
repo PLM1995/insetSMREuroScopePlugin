@@ -17,6 +17,6 @@ namespace PLM1995forEuroScope
         void DisplayMessage(const std::string &message,
                             const std::string &sender = "PLM1995");
 
-        virtual void OnTimer(int secs);
+//        virtual void OnTimer(int secs);
     };
 }

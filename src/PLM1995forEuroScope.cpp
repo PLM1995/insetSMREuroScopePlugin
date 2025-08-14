@@ -24,13 +24,14 @@ namespace PLM1995forEuroScope
             true    // requires acknowledgement
         );
     }
-
+/*
     void PLM1995forEuroScope::OnTimer(int secs) {
-        if(secs % 2 == 0) {
-            DisplayMessage("Meow", "Cat");
-        }
-        else {
+        if(secs % 10 == 0) {
             DisplayMessage("Woof", "Dog");
         }
+        else if(secs % 5 == 0){
+            DisplayMessage("Meow", "Cat");
+        }
     }
+*/
 }
