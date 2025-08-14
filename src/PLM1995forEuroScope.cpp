@@ -1,17 +1,17 @@
-#include "plugin.h"
+#include "PLM1995forEuroScope.h"
 #include "Version.h"
 
-namespace myPlugIn
+namespace PLM1995forEuroScope
 {
-    myPlugIn::myPlugIn() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR, PLUGIN_LICENSE)
+    PLM1995forEuroScope::PLM1995forEuroScope() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR, PLUGIN_LICENSE)
     {
         DisplayMessage("Version " + std::string(PLUGIN_VERSION) + " loaded", "Initialisation");
     }
-    myPlugIn::~myPlugIn()
+    PLM1995forEuroScope::~PLM1995forEuroScope()
     {
     }
 
-    void myPlugIn::DisplayMessage(const std::string &message, const std::string &sender)
+    void PLM1995forEuroScope::DisplayMessage(const std::string &message, const std::string &sender)
     {
         DisplayUserMessage(
             PLUGIN_NAME,
@@ -25,7 +25,7 @@ namespace myPlugIn
         );
     }
 
-    void myPlugIn::OnTimer(int secs) {
+    void PLM1995forEuroScope::OnTimer(int secs) {
         if(secs % 2 == 0) {
             DisplayMessage("Meow", "Cat");
         }

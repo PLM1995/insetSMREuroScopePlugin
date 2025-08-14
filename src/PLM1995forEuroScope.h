@@ -6,13 +6,13 @@
 
 #include <string>
 
-namespace myPlugIn
+namespace PLM1995forEuroScope
 {
-    class myPlugIn : public EuroScopePlugIn::CPlugIn
+    class PLM1995forEuroScope : public EuroScopePlugIn::CPlugIn
     {
     public:
-        myPlugIn();
-        ~myPlugIn();
+        PLM1995forEuroScope();
+        ~PLM1995forEuroScope();
 
         void DisplayMessage(const std::string &message,
                             const std::string &sender = "PLM1995");

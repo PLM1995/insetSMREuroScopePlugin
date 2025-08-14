@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.14)
 
-PROJECT(myPlugIn VERSION "0.0.1")
+PROJECT(PLM1995forEuroScope VERSION "0.0.1")
 SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
 SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,11 +50,11 @@ ADD_DEFINITIONS(
 )
 
 SET(SOURCE_FILES
-    src/plugin.cpp
-    src/plugin.h
+    src/PLM1995forEuroScope.cpp
+    src/PLM1995forEuroScope.h
     src/main.cpp
     src/Version.h
 )
 
-ADD_LIBRARY(myPlugIn SHARED ${SOURCE_FILES})
-TARGET_LINK_LIBRARIES(myPlugIn ${CMAKE_SOURCE_DIR}/external/lib/EuroScopePlugInDLL.lib crypt32.lib ws2_32.lib Shlwapi.lib)
+ADD_LIBRARY(PLM1995forEuroScope SHARED ${SOURCE_FILES})
+TARGET_LINK_LIBRARIES(PLM1995forEuroScope ${CMAKE_SOURCE_DIR}/external/lib/EuroScopePlugInDLL.lib crypt32.lib ws2_32.lib Shlwapi.lib)

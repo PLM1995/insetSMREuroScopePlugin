@@ -3,13 +3,13 @@
 #include <EuroScopePlugIn.h>
 #pragma warning(pop)
 
-#include "plugin.h"
+#include "PLM1995forEuroScope.h"
 
 std::unique_ptr<EuroScopePlugIn::CPlugIn> Plugin;
 
 void __declspec(dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **ppPlugInInstance)
 {
-  Plugin.reset(new myPlugIn::myPlugIn());
+  Plugin.reset(new PLM1995forEuroScope::PLM1995forEuroScope());
   *ppPlugInInstance = Plugin.get();
 }
 

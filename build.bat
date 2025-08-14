@@ -22,7 +22,7 @@ IF "%2"=="--run" (
 )
 
 REM Generate build system if needed (multi-config)
-cmake -S . -B build
+cmake -S . -B build -A Win32
 
 REM Build the project at the chosen configuration
 cmake --build build --config %BUILD_TYPE%
@@ -32,7 +32,7 @@ IF ERRORLEVEL 1 (
 )
 
 REM Copy DLL to EuroScope plugin folder
-copy "build\%BUILD_TYPE%\myPlugIn.dll" "%APPDATA%\EuroScope\UK\Data\Plugin\PLM1995Plugin.dll"
+copy "build\%BUILD_TYPE%\PLM1995forEuroScope.dll" "%APPDATA%\EuroScope\UK\Data\Plugin\PLM1995forEuroScope.dll"
 IF ERRORLEVEL 1 (
     echo Failed to copy plugin DLL.
     exit /b 1

@@ -1,10 +1,10 @@
 #pragma once
 
 namespace {
-const char *PLUGIN_NAME{ "PLM1995" };
+const char *PLUGIN_NAME{ "PLM1995 for EuroScope" };
 const char *PLUGIN_VERSION{ "@CMAKE_PROJECT_VERSION@" };
 const char *PLUGIN_AUTHOR{ "PLM1995" };
-const char *PLUGIN_LICENSE{ "GPLv3" };
+const char *PLUGIN_LICENSE{ "GPL v3" };
 
 static constexpr std::uint8_t PLUGIN_VERSION_MAJOR = @CMAKE_PROJECT_VERSION_MAJOR@;
 static constexpr std::uint8_t PLUGIN_VERSION_MINOR = @CMAKE_PROJECT_VERSION_MINOR@;
