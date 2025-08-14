@@ -18,15 +18,15 @@ namespace myPlugIn
             sender.c_str(),
             message.c_str(),
             true,   // blinking
-            false,  // not a warning
-            false,  // not high priority
+            false,  // warning
+            false,  // high priority
             true,   // persistent
-            true    // must be acknowledged
+            true    // requires acknowledgement
         );
     }
 
-    void myPlugIn::OnTimer(int id) {
-        if(id % 2 == 0) {
+    void myPlugIn::OnTimer(int secs) {
+        if(secs % 2 == 0) {
             DisplayMessage("Meow", "Cat");
         }
         else {
