@@ -9,7 +9,7 @@ std::unique_ptr<EuroScopePlugIn::CPlugIn> Plugin;
 
 void __declspec(dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **ppPlugInInstance)
 {
-  Plugin.reset(new PLM1995forEuroScope::PLM1995forEuroScope());
+  Plugin.reset(new PLM1995forEuroScopeNS::PLM1995forEuroScope());
   *ppPlugInInstance = Plugin.get();
 }
 
