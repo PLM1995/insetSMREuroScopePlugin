@@ -1,9 +1,14 @@
 #include "RadarScreen.h"
 #include "PLM1995forEuroScope.h"
 #include "HelperFunctions.h"
+#include "Constants.h"
 
 namespace RadarScreenNS{
     RadarScreen::RadarScreen(PLM1995forEuroScopeNS::PLM1995forEuroScope* pluginInstance) : plugin(pluginInstance) {}
+
+    void RadarScreen::CirclePoint(HDC hDC, POINT point, int radius) {
+        Ellipse(hDC, point.x - radius, point.y - radius, point.x + radius, point.y + radius);
+    }
 
     EuroScopePlugIn::CPosition RadarScreen::PositionFromPosHdgDist(EuroScopePlugIn::CPosition startPosition, double heading, double distance) {
         // Convert Inputs
@@ -24,43 +29,103 @@ namespace RadarScreenNS{
         return endPosition;
     }
 
+    void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
+    {
+        if (Button == EuroScopePlugIn::BUTTON_LEFT) {
+            plugin->DisplayMessage(std::string(sObjectId), "Screen Object Clicked"); // Debugging printout
+            switch (ObjectType) {
+                case SETPUSHBACKDIRECTIONSTRAIGHT: {
+                    for(const auto& [callsign, PushBackData] : plugin->GetPushingBackAircraft()) {
+                        if (std::string(sObjectId) == std::string(callsign)) {
+                            plugin->SetPushingBackDirection(callsign, PushbackDirection::Straight);
+                        }
+                    }
+                    break;
+                }
+                case SETPUSHBACKDIRECTIONLEFT: {
+                    for(const auto& [callsign, PushBackData] : plugin->GetPushingBackAircraft()) {
+                        if (std::string(sObjectId) == std::string(callsign)) {
+                            plugin->SetPushingBackDirection(callsign, PushbackDirection::Left);
+                        }
+                    }
+                    break;
+                }
+                case SETPUSHBACKDIRECTIONRIGHT: {
+                    for(const auto& [callsign, PushBackData] : plugin->GetPushingBackAircraft()) {
+                        if (std::string(sObjectId) == std::string(callsign)) {
+                            plugin->SetPushingBackDirection(callsign, PushbackDirection::Right);
+                        }
+                    }
+                    break;
+                }
+            }
+            
+        }
+    }
     
     void RadarScreen::OnRefresh(HDC hDC, int phase) {
         if(phase == EuroScopePlugIn::REFRESH_PHASE_AFTER_TAGS) {
             // Prepare GDI objects
-            HBRUSH hBrushOld = (HBRUSH)SelectObject(hDC, GetStockObject(NULL_BRUSH)); // no fill
+            HBRUSH hBrushOld = (HBRUSH)SelectObject(hDC, GetStockObject(NULL_BRUSH)); // No fill
 
-            // Create a red pen for circle outline
-            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
+            // Create a pen
+            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 165, 0));   // Orange
             HPEN hPenOld = (HPEN)SelectObject(hDC, hPen);
 
             // For each pushing aircraft
             for(const auto& [callsign, PushBackData] : plugin->GetPushingBackAircraft()) {
                 // Convert start position to pixels
                 POINT pointStartPush = EuroScopePlugIn::CRadarScreen::ConvertCoordFromPositionToPixel(PushBackData.position);
-
-                // Draw Line out of back of aircraft
-                double reciprocalHeading = fmod(PushBackData.heading + 180, 360);    // Behind aircraft
-               
+                
+                // Draw appropriate T-Bars behind Aicraft
+                double reciprocalHeading = fmod(PushBackData.heading + 180.0, 360.0);   // Behind Aircraft
                 EuroScopePlugIn::CPosition positionBehind = PositionFromPosHdgDist(PushBackData.position, reciprocalHeading, 50.0);
                 POINT pointBehind = EuroScopePlugIn::CRadarScreen::ConvertCoordFromPositionToPixel(positionBehind);
-                MoveToEx(hDC, pointStartPush.x, pointStartPush.y, nullptr);
-                LineTo(hDC, pointBehind.x, pointBehind.y);
 
-                // Draw T-Bars behind Aicraft   // TODO: Add selectability of direction
-                double rightHeading = fmod(reciprocalHeading + 270.0, 360.0);
                 double leftHeading = fmod(reciprocalHeading + 90.0, 360.0);
-                EuroScopePlugIn::CPosition positionBehindRight = PositionFromPosHdgDist(positionBehind, rightHeading, 25.0);
                 EuroScopePlugIn::CPosition positionBehindLeft = PositionFromPosHdgDist(positionBehind, leftHeading, 25.0);
-
-                POINT tBarRightPoint = EuroScopePlugIn::CRadarScreen::ConvertCoordFromPositionToPixel(positionBehindRight);
                 POINT tBarLeftPoint = EuroScopePlugIn::CRadarScreen::ConvertCoordFromPositionToPixel(positionBehindLeft);
 
-                MoveToEx(hDC, pointBehind.x, pointBehind.y, nullptr);
-                LineTo(hDC, tBarLeftPoint.x, tBarLeftPoint.y);
+                double rightHeading = fmod(reciprocalHeading + 270.0, 360.0);
+                EuroScopePlugIn::CPosition positionBehindRight = PositionFromPosHdgDist(positionBehind, rightHeading, 25.0);
+                POINT tBarRightPoint = EuroScopePlugIn::CRadarScreen::ConvertCoordFromPositionToPixel(positionBehindRight);
 
-                MoveToEx(hDC, pointBehind.x, pointBehind.y, nullptr);
-                LineTo(hDC, tBarRightPoint.x, tBarRightPoint.y);
+                switch (PushBackData.direction) {
+                    case PushbackDirection::Null: {
+                        int circle_radius = 3;
+                        CirclePoint(hDC, pointBehind, circle_radius);
+                        CirclePoint(hDC, tBarLeftPoint, circle_radius);
+                        CirclePoint(hDC, tBarRightPoint, circle_radius);
+                        
+                        AddScreenObject(SETPUSHBACKDIRECTIONSTRAIGHT, callsign,
+                                        { pointBehind.x - circle_radius, pointBehind.y - circle_radius, pointBehind.x + circle_radius, pointBehind.y + circle_radius },
+                                        false, "Straight");
+                        AddScreenObject(SETPUSHBACKDIRECTIONLEFT, callsign,
+                                        { tBarLeftPoint.x - circle_radius, tBarLeftPoint.y - circle_radius, tBarLeftPoint.x + circle_radius, tBarLeftPoint.y + circle_radius },
+                                        false, "Left");
+                        AddScreenObject(SETPUSHBACKDIRECTIONRIGHT, callsign,
+                                        { tBarRightPoint.x - circle_radius, tBarRightPoint.y - circle_radius,tBarRightPoint.x + circle_radius, tBarRightPoint.y + circle_radius },
+                                        false, "Right");
+                        break;
+                    }
+                    case PushbackDirection::Left: {
+                        MoveToEx(hDC, pointStartPush.x, pointStartPush.y, nullptr);
+                        LineTo(hDC, pointBehind.x, pointBehind.y);
+                        LineTo(hDC, tBarLeftPoint.x, tBarLeftPoint.y);
+                        break;
+                    }
+                    case PushbackDirection::Right: {
+                        MoveToEx(hDC, pointStartPush.x, pointStartPush.y, nullptr);
+                        LineTo(hDC, pointBehind.x, pointBehind.y);
+                        LineTo(hDC, tBarRightPoint.x, tBarRightPoint.y);
+                        break;
+                    }
+                    case PushbackDirection::Straight: {
+                        MoveToEx(hDC, pointStartPush.x, pointStartPush.y, nullptr);
+                        LineTo(hDC, pointBehind.x, pointBehind.y);
+                        break;
+                    }
+                }
             }
 
             // Cleanup GDI objects

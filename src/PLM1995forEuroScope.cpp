@@ -58,6 +58,11 @@ namespace PLM1995forEuroScopeNS
         return pushingBackAircraft;
     }
 
+    const void PLM1995forEuroScope::SetPushingBackDirection(const char *Callsign, PushbackDirection Direction) {
+        DisplayMessage(std::string(Callsign), "Setting Pushback Direction"); // Debugging printout
+        pushingBackAircraft[Callsign].direction = Direction;
+    }
+
     EuroScopePlugIn::CRadarScreen * PLM1995forEuroScope::OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated) {
         DisplayMessage((std::string("On ") + sDisplayName).c_str(), "Activation");
         

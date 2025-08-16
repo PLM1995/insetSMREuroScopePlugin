@@ -8,6 +8,13 @@
 #include <string>
 #include <map>
 
+enum class PushbackDirection {
+    Null = 0,
+    Straight = 1,
+    Left = 2,
+    Right = 3
+};
+
 namespace PLM1995forEuroScopeNS
 {
     class PLM1995forEuroScope : public EuroScopePlugIn::CPlugIn
@@ -26,8 +33,10 @@ namespace PLM1995forEuroScopeNS
         struct PushBackData {
             EuroScopePlugIn::CPosition position;
             double heading;
+            PushbackDirection direction = PushbackDirection::Null;
         };
         const std::map<const char *, PushBackData>& GetPushingBackAircraft() const;
+        const void SetPushingBackDirection(const char *Callsign, PushbackDirection Direction);
 
         virtual EuroScopePlugIn::CRadarScreen * OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
 
