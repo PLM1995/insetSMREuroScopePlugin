@@ -47,7 +47,7 @@ namespace RadarScreenNS{
                 MoveToEx(hDC, pointStartPush.x, pointStartPush.y, nullptr);
                 LineTo(hDC, pointBehind.x, pointBehind.y);
 
-                // Draw T-Bars behind Aicraft
+                // Draw T-Bars behind Aicraft   // TODO: Add selectability of direction
                 double rightHeading = fmod(reciprocalHeading + 270.0, 360.0);
                 double leftHeading = fmod(reciprocalHeading + 90.0, 360.0);
                 EuroScopePlugIn::CPosition positionBehindRight = PositionFromPosHdgDist(positionBehind, rightHeading, 25.0);

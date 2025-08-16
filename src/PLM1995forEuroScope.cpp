@@ -37,7 +37,7 @@ namespace PLM1995forEuroScopeNS
 
     void PLM1995forEuroScope::OnFlightPlanControllerAssignedDataUpdate(EuroScopePlugIn::CFlightPlan FlightPlan, int DataType) {
         if (DataType == EuroScopePlugIn::CTR_DATA_TYPE_GROUND_STATE){
-            std::string Callsign = FlightPlan.GetCallsign();
+            const char * Callsign = FlightPlan.GetCallsign();
             std::string GroundState = FlightPlan.GetGroundState();
             DisplayMessage(GroundState, Callsign); // Debugging printout
             if (GroundState == "PUSH") {
@@ -54,7 +54,7 @@ namespace PLM1995forEuroScopeNS
         }
     }
 
-    const std::map<std::string, PLM1995forEuroScope::PushBackData>& PLM1995forEuroScope::GetPushingBackAircraft() const {
+    const std::map<const char *, PLM1995forEuroScope::PushBackData>& PLM1995forEuroScope::GetPushingBackAircraft() const {
         return pushingBackAircraft;
     }
 
@@ -64,5 +64,15 @@ namespace PLM1995forEuroScopeNS
         return new RadarScreenNS::RadarScreen(this);
     }
 
-    //TODO: Check for disconnecting aircraft every second
+    // Check for disconnected aircraft every second
+    void PLM1995forEuroScope::OnTimer (int Counter) {
+        for (auto aircraft = pushingBackAircraft.begin(); aircraft != pushingBackAircraft.end(); ) {
+            EuroScopePlugIn::CRadarTarget radarTarget = RadarTargetSelect(aircraft->first);
+            if (!radarTarget.IsValid()) {
+                aircraft = pushingBackAircraft.erase(aircraft);
+            } else {
+                ++aircraft;
+            }
+        }
+    }
 }
