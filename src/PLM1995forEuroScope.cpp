@@ -41,13 +41,20 @@ namespace PLM1995forEuroScopeNS
             std::string GroundState = FlightPlan.GetGroundState();
             DisplayMessage(GroundState, Callsign); // Debugging printout
             if (GroundState == "PUSH") {
+                EuroScopePlugIn::CRadarTarget RadarTarget = PLM1995forEuroScope::RadarTargetSelect(FlightPlan.GetCallsign());
+
                 // Add aircraft to list of pushers
-                PLM1995forEuroScope::pushingBackAircraft[Callsign] = FlightPlan.GetPositionPredictions().GetPosition(0);
+                PLM1995forEuroScope::pushingBackAircraft[Callsign].position = RadarTarget.GetPosition().GetPosition();
+                PLM1995forEuroScope::pushingBackAircraft[Callsign].heading = (double)RadarTarget.GetPosition().GetReportedHeadingTrueNorth();
+
+                DisplayMessage("Heading = " + std::to_string(pushingBackAircraft[Callsign].heading), Callsign); // Debugging printout
             }
+
+            //TODO: Remove from list when changed from pushback
         }
     }
 
-    const std::map<std::string, EuroScopePlugIn::CPosition>& PLM1995forEuroScope::GetPushingBackAircraft() const {
+    const std::map<std::string, PLM1995forEuroScope::PushBackData>& PLM1995forEuroScope::GetPushingBackAircraft() const {
         return pushingBackAircraft;
     }
 
@@ -56,4 +63,6 @@ namespace PLM1995forEuroScopeNS
         
         return new RadarScreenNS::RadarScreen(this);
     }
+
+    //TODO: Check for disconnecting aircraft every second
 }

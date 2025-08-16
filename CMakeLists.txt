@@ -50,6 +50,7 @@ ADD_DEFINITIONS(
 )
 
 SET(SOURCE_FILES
+    src/HelperFunctions.h
     src/RadarScreen.cpp
     src/RadarScreen.h
     src/PLM1995forEuroScope.cpp

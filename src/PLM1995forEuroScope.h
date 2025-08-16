@@ -21,12 +21,17 @@ namespace PLM1995forEuroScopeNS
 
         virtual void OnFlightPlanControllerAssignedDataUpdate(EuroScopePlugIn::CFlightPlan FlightPlan, int DataType);
 
-        const std::map<std::string, EuroScopePlugIn::CPosition>& GetPushingBackAircraft() const;
+        struct PushBackData {
+            EuroScopePlugIn::CPosition position;
+            double heading;
+        };
+        const std::map<std::string, PushBackData>& GetPushingBackAircraft() const;
 
         virtual EuroScopePlugIn::CRadarScreen * OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
 
     private:
         RadarScreenNS::RadarScreen* radarScreen = nullptr;
-        std::map<std::string, EuroScopePlugIn::CPosition> pushingBackAircraft;
+
+        std::map<std::string, PushBackData> pushingBackAircraft;
     };
 }

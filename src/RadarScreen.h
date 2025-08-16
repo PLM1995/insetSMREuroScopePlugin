@@ -21,5 +21,7 @@ namespace RadarScreenNS
 
     private:
         PLM1995forEuroScopeNS::PLM1995forEuroScope* plugin;
+
+        EuroScopePlugIn::CPosition PositionFromPosHdgDist(EuroScopePlugIn::CPosition startPosition, double heading, double distance);
     };
 }
