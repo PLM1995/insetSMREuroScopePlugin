@@ -46,11 +46,11 @@ namespace PLM1995forEuroScopeNS
                 // Add aircraft to list of pushers
                 PLM1995forEuroScope::pushingBackAircraft[Callsign].position = RadarTarget.GetPosition().GetPosition();
                 PLM1995forEuroScope::pushingBackAircraft[Callsign].heading = (double)RadarTarget.GetPosition().GetReportedHeadingTrueNorth();
-
-                DisplayMessage("Heading = " + std::to_string(pushingBackAircraft[Callsign].heading), Callsign); // Debugging printout
             }
-
-            //TODO: Remove from list when changed from pushback
+            else {
+                // Remove aircraft from list of pushers
+                pushingBackAircraft.erase(Callsign);
+            }
         }
     }
 
