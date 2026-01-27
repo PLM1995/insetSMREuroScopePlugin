@@ -1,3 +1,3 @@
-# EuroScope Plugin Template
+# Inset SMR EuroScope Plugin
 
-A template for a Euroscope Plugin using CMake.
+This plugin allows the display of a miniature SMR window on other radar views within EuroScope.
