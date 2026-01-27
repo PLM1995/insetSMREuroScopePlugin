@@ -5,7 +5,7 @@
  * either version 3 of the License, or (at your option) any later version.
  */
 
- #include "SectorFileLoad.h"
+#include "SectorFileLoad.h"
 #include "InsetSMR.h"
 #include <fstream>
 #include <filesystem>
@@ -33,11 +33,17 @@ namespace SectorFileLoadNS {
                 return colourDef.code;
             }
         }
-        return 0; // Default colour code if not found
+
+        plugin->DisplayMessage(colourName, "Unknown colour name");
+        return 0; // Default colour code if not found (black)
     }
 
     std::vector<SectorFileLoadNS::SectorFileLoad::GeoLine>* SectorFileLoad::getGeoLines() {
         return &geoLines;
+    }
+
+    std::vector<SectorFileLoadNS::SectorFileLoad::Region>* SectorFileLoad::getRegions() {
+        return &regions;
     }
 
     double SectorFileLoad::dms_to_decimal(std::string coord_str) {
@@ -61,6 +67,15 @@ namespace SectorFileLoadNS {
         geoLine.colourRed = geoLine.colourCode % 256;
         geoLine.colourGreen = ((geoLine.colourCode - geoLine.colourRed) / 256) % 256;
         geoLine.colourBlue = ((((geoLine.colourCode - geoLine.colourRed) / 256) - geoLine.colourGreen) / 256) % 256;
+        return;
+    }
+
+    void SectorFileLoad::updateRegionFromStrings(Region& region) {
+        plugin->DisplayMessage(region.name, "Updating Region From String, Region name");
+        region.colourCode = getColourCodeFromName(region.colourName);
+        region.colourRed = region.colourCode % 256;
+        region.colourGreen = ((region.colourCode - region.colourRed) / 256) % 256;
+        region.colourBlue = ((((region.colourCode - region.colourRed) / 256) - region.colourGreen) / 256) % 256;
         return;
     }
 
@@ -90,6 +105,10 @@ namespace SectorFileLoadNS {
         std::string activeLoadingAirport = "";
         std::string endOfGeoFirstLine = "S999.00.00.000 E999.00.00.000 S999.00.00.000 E999.00.00.000";
         bool GlasgowGeoLoaded = false;
+
+        std::string currentRegionName = "";
+        SectorFileLoad::Region loadingRegion;
+        bool LoadThisRegion = false;
 
         // Parse sector file lines
         while (std::getline(sectorFileStream, line)) {
@@ -159,8 +178,61 @@ namespace SectorFileLoadNS {
                     GlasgowGeoLoaded = true;
                 }
             }
+
+            // Parse REGIONS section
             else if (currentSection == "REGIONS") {
-                // Parse REGIONS section
+                std::vector<std::string> splitLine = splitString(line, ' ');
+                
+                // TODO: Make airport in use selectable
+                if (line.find("REGIONNAME Glasgow") != std::string::npos) {
+                    LoadThisRegion = true;
+                }
+                
+                else if (line.find("REGIONNAME") != std::string::npos) {
+                    LoadThisRegion = false;
+                }
+
+                if (!LoadThisRegion) {
+                    continue;
+                }
+
+                // New relevant REGION definition
+                if (splitLine[0].find("REGIONNAME") != std::string::npos) {
+                    // Save the previous region before starting a new one
+                    if (loadingRegion.name != "") {
+                        regions.push_back(loadingRegion);
+                        loadingRegion = SectorFileLoad::Region(); // Reset loadingRegion
+                    }
+                    currentRegionName = splitLine[1];
+                    continue;
+                }
+
+                //FIXME: There is a huge bodge here to deal with leading whitespace
+                else if (splitLine.size() > 2 && splitLine[0] != "") {
+
+                    plugin->DisplayMessage(line, "Parsing REGION line with >2 entries");
+
+                    loadingRegion.name = currentRegionName;
+                    loadingRegion.colourName = splitLine[0];
+                    updateRegionFromStrings(loadingRegion);
+                    loadingRegion.boundaryCoords.push_back({dms_to_decimal(splitLine[1]), dms_to_decimal(splitLine[2])});
+                    continue;
+                }
+
+                else if (splitLine.size() > 2 && splitLine[0] == "") {
+                    loadingRegion.boundaryCoords.push_back({dms_to_decimal(splitLine[1]), dms_to_decimal(splitLine[2])});
+                    continue;
+                }
+
+                else if (splitLine.size() == 2) {
+                    loadingRegion.boundaryCoords.push_back({dms_to_decimal(splitLine[0]), dms_to_decimal(splitLine[1])});
+                    continue;
+                }
+
+                else {
+                    plugin->DisplayMessage(line, "Invalid REGION line format");
+                    continue;
+                }
             }
         }
 

@@ -33,20 +33,49 @@ namespace SectorFileLoadNS {
             int colourBlue;
         };
 
+        struct coordinate {
+            double lat;
+            double lon;
+        };
+
+        struct Region {
+            std::string name;
+            std::vector<coordinate> boundaryCoords;
+            std::string colourName;
+            int colourCode;
+            int colourRed;
+            int colourGreen;
+            int colourBlue;
+        };
+
         std::vector<SectorFileLoadNS::SectorFileLoad::GeoLine>* getGeoLines();
+
+        std::vector<SectorFileLoadNS::SectorFileLoad::Region>* getRegions();
 
     private:
         InsetSMRNS::InsetSMR* plugin = nullptr;
+        
         std::vector<std::string> splitString(const std::string& str, char delimiter);
+        
         struct ColourDefinition {
             std::string name;
             int code;
         };
+        
         std::vector<SectorFileLoadNS::SectorFileLoad::ColourDefinition> colourCodes;
+        
         int getColourCodeFromName(const std::string& colourName);
+        
         void updateGeoLineFromStrings(GeoLine& geoLine);
+        
+        void updateRegionFromStrings(Region& region);
+
         std::vector<SectorFileLoadNS::SectorFileLoad::GeoLine> geoLines;
+
+        std::vector<Region> regions;
+        
         double dms_to_decimal(std::string coord_str);
+        
         bool GlasgowGeoLoaded = false;
     };
 }
