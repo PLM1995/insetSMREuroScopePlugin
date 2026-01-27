@@ -32,7 +32,7 @@ IF ERRORLEVEL 1 (
 )
 
 REM Copy DLL to EuroScope plugin folder
-copy "build\%BUILD_TYPE%\PLM1995forEuroScope.dll" "%APPDATA%\EuroScope\UK\Data\Plugin\PLM1995forEuroScope.dll"
+copy ".\build\%BUILD_TYPE%\InsetSMR.dll" "%APPDATA%\EuroScope\UK\Data\Plugin\InsetSMR.dll"
 IF ERRORLEVEL 1 (
     echo Failed to copy plugin DLL.
     exit /b 1

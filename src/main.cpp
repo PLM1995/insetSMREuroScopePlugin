@@ -3,14 +3,16 @@
 #include <EuroScopePlugIn.h>
 #pragma warning(pop)
 
-#include "PLM1995forEuroScope.h"
+#include "InsetSMR.h"
 
-std::unique_ptr<EuroScopePlugIn::CPlugIn> Plugin;
+std::unique_ptr<InsetSMRNS::InsetSMR> Plugin;
 
 void __declspec(dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn **ppPlugInInstance)
 {
-  Plugin.reset(new PLM1995forEuroScopeNS::PLM1995forEuroScope());
+  Plugin.reset(new InsetSMRNS::InsetSMR());
   *ppPlugInInstance = Plugin.get();
 }
 
-void __declspec(dllexport) EuroScopePlugInExit(void) {}
+void __declspec(dllexport) EuroScopePlugInExit(void) {
+  Plugin.reset(nullptr);
+}

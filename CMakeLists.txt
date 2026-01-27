@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.14)
 
-PROJECT(PLM1995forEuroScope VERSION "0.0.1")
+PROJECT(InsetSMR VERSION "0.0.1")
 SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
 SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,15 +50,15 @@ ADD_DEFINITIONS(
 )
 
 SET(SOURCE_FILES
-    src/Constants.h
-    src/HelperFunctions.h
     src/RadarScreen.cpp
     src/RadarScreen.h
-    src/PLM1995forEuroScope.cpp
-    src/PLM1995forEuroScope.h
+    src/InsetSMR.cpp
+    src/InsetSMR.h
     src/main.cpp
+    src/SectorFileLoad.cpp
+    src/SectorFileLoad.h
     src/Version.h
 )
 
-ADD_LIBRARY(PLM1995forEuroScope SHARED ${SOURCE_FILES})
-TARGET_LINK_LIBRARIES(PLM1995forEuroScope ${CMAKE_SOURCE_DIR}/external/lib/EuroScopePlugInDLL.lib crypt32.lib ws2_32.lib Shlwapi.lib)
+ADD_LIBRARY(InsetSMR SHARED ${SOURCE_FILES})
+TARGET_LINK_LIBRARIES(InsetSMR ${CMAKE_SOURCE_DIR}/external/lib/EuroScopePlugInDLL.lib crypt32.lib ws2_32.lib Shlwapi.lib)
