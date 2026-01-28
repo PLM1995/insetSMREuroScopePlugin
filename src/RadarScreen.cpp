@@ -19,6 +19,7 @@ namespace RadarScreenNS{
     
     void RadarScreen::OnRefresh(HDC hDC, int phase) {
         if(phase == EuroScopePlugIn::REFRESH_PHASE_AFTER_TAGS) {
+//            if (plugin) plugin->LogEvent("OnRefresh start");
             // Top left inset rectangle
             int insetLeftPosition = 10;
             int insetTopPosition = 50;
@@ -37,24 +38,24 @@ namespace RadarScreenNS{
             int savedDC = SaveDC(hDC);
             SelectClipRgn(hDC, clipRgn);
 
-            // Draw loaded GEO lines
+            // FIXME: Change from hard coded values to configurable / based on airport
+            double minLon = -4.453889;
+            double maxLon = -4.416389;
+            double minLat = 55.861389;
+            double maxLat = 55.880833;
+        
+            double lonRange = maxLon - minLon;
+            double latRange = maxLat - minLat;
+            // Avoid divide‑by‑zero
+            if (lonRange <= 0.0 || latRange <= 0.0){
+                plugin->DisplayMessage("Invalid lat/lon range for inset drawing", "RadarScreen");
+                return;
+            }
+
+            // Draw loaded GEO lines and REGIONS
             if (plugin) {
                 auto sectorFileLoader = plugin->GetSectorFileLoader();
                 if (sectorFileLoader) {
-                    // FIXME: Change from hard coded values to configurable / based on airport
-                    double minLon = -4.453889;
-                    double maxLon = -4.416389;
-                    double minLat = 55.861389;
-                    double maxLat = 55.880833;
-                
-                    double lonRange = maxLon - minLon;
-                    double latRange = maxLat - minLat;
-                    // Avoid divide‑by‑zero
-                    if (lonRange <= 0.0 || latRange <= 0.0){
-                        plugin->DisplayMessage("Invalid lat/lon range for inset drawing", "RadarScreen");
-                        return;
-                    }
-                    
                     // Draw each REGION
                     const auto regions = sectorFileLoader->getRegions();
                     for (const auto &region : *regions) {
@@ -138,6 +139,46 @@ namespace RadarScreenNS{
                 }
             }
 
+            // Draw aircraft symbols
+            std::vector<InsetSMRNS::InsetSMR::RadarTargetSnapshot> targets;
+            if (plugin) targets = plugin->getActiveRadarTargetSnapshots();
+//            if (plugin) plugin->LogEvent(std::string("OnRefresh: target snapshot size=") + std::to_string(targets.size()));
+            for (const auto &rt : targets) {
+                if (!rt.valid) {
+                    continue;
+                }
+
+                double acLon = rt.lon;
+                double acLat = rt.lat;
+                std::string acCallsign = rt.callsign;
+
+                // Check if within inset bounds
+                if (acLon < minLon || acLon > maxLon || acLat < minLat || acLat > maxLat) {
+                    continue;
+                }
+
+                double acXNorm = (acLon - minLon) / lonRange;
+                double acYNorm = (acLat - minLat) / latRange;
+
+                POINT acPt = {
+                    insetLeftPosition + static_cast<LONG>(acXNorm * insetWidth),
+                    insetTopPosition  + insetHeight - static_cast<LONG>(acYNorm * insetHeight)
+                };
+
+                HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 0)); // Yellowish color
+                HPEN hOldPen = (HPEN)SelectObject(hDC, hPen);
+
+                // Draw a simple aircraft symbol (a cross)
+                MoveToEx(hDC, acPt.x - 2, acPt.y, NULL);
+                LineTo(hDC, acPt.x + 3, acPt.y);
+                MoveToEx(hDC, acPt.x, acPt.y - 2, NULL);
+                LineTo(hDC, acPt.x, acPt.y + 3);
+
+                SelectObject(hDC, hOldPen);
+                DeleteObject(hPen);
+            }
+
+//            if (plugin) plugin->LogEvent("OnRefresh end");
             // Clear clip region
             RestoreDC(hDC, savedDC);
             DeleteObject(clipRgn);

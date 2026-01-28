@@ -71,7 +71,7 @@ namespace SectorFileLoadNS {
     }
 
     void SectorFileLoad::updateRegionFromStrings(Region& region) {
-        plugin->DisplayMessage(region.name, "Updating Region From String, Region name");
+//        plugin->DisplayMessage(region.name, "Updating Region From String, Region name");
         region.colourCode = getColourCodeFromName(region.colourName);
         region.colourRed = region.colourCode % 256;
         region.colourGreen = ((region.colourCode - region.colourRed) / 256) % 256;
@@ -132,11 +132,11 @@ namespace SectorFileLoadNS {
             // Check for section headers
             if (line.find("[GEO]") != std::string::npos) {
                 currentSection = "GEO";
-                plugin->DisplayMessage(currentSection, "In Section");
+//                plugin->DisplayMessage(currentSection, "In Section");
                 continue;
             } else if (line.find("[REGIONS]") != std::string::npos) {
                 currentSection = "REGIONS";
-                plugin->DisplayMessage(currentSection, "In Section");
+//                plugin->DisplayMessage(currentSection, "In Section");
                 continue;
             }
 
@@ -210,7 +210,7 @@ namespace SectorFileLoadNS {
                 //FIXME: There is a huge bodge here to deal with leading whitespace
                 else if (splitLine.size() > 2 && splitLine[0] != "") {
 
-                    plugin->DisplayMessage(line, "Parsing REGION line with >2 entries");
+//                    plugin->DisplayMessage(line, "Parsing REGION line with >2 entries");
 
                     loadingRegion.name = currentRegionName;
                     loadingRegion.colourName = splitLine[0];
@@ -238,6 +238,6 @@ namespace SectorFileLoadNS {
 
         sectorFileStream.close();
 
-        plugin->DisplayMessage("Sector file loaded successfully.", "Success");
+        plugin->DisplayMessage("Sector file loaded successfully", "Success");
     }
 }
