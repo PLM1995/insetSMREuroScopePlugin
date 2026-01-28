@@ -15,6 +15,8 @@
 
 #include <string>
 #include <map>
+#include <vector>
+#include <mutex>
 
 enum class PushbackDirection {
     Null = 0,
@@ -35,13 +37,28 @@ namespace InsetSMRNS
 
         void DisplayMessage(const std::string &message,
                             const std::string &sender = "InsetSMR");
+        void LogEvent(const std::string &message);
 
-        virtual void OnTimer (int Counter);
+        virtual void OnRadarTargetPositionUpdate (EuroScopePlugIn::CRadarTarget RadarTarget);
+
+        virtual void OnFlightPlanDisconnect (EuroScopePlugIn::CFlightPlan FlightPlan);
 
         virtual EuroScopePlugIn::CRadarScreen * OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
+
+        struct RadarTargetSnapshot {
+            double lon = 0.0;
+            double lat = 0.0;
+            std::string callsign;
+            bool valid = false;
+        };
+
+        std::vector<RadarTargetSnapshot> getActiveRadarTargetSnapshots();
 
     private:
         RadarScreenNS::RadarScreen* radarScreen = nullptr;
         SectorFileLoadNS::SectorFileLoad* sectorFileLoader = nullptr;
+        std::mutex ActiveRadarTargetsMutex;
+        std::mutex LogMutex;
+        std::vector<RadarTargetSnapshot> ActiveRadarTargets = {};
     };
 }
