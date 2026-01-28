@@ -165,16 +165,40 @@ namespace RadarScreenNS{
                     insetTopPosition  + insetHeight - static_cast<LONG>(acYNorm * insetHeight)
                 };
 
+                // Draw aircraft symbol
+                // Create and select a brush
+                HBRUSH hBrush = CreateSolidBrush(RGB(255, 255, 0)); // Yellowish color
+                HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
+
+                // Create/select a pen
                 HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 0)); // Yellowish color
-                HPEN hOldPen = (HPEN)SelectObject(hDC, hPen);
+                HPEN oldPen = (HPEN)SelectObject(hDC, hPen);
 
-                // Draw a simple aircraft symbol (a cross)
-                MoveToEx(hDC, acPt.x - 2, acPt.y, NULL);
-                LineTo(hDC, acPt.x + 3, acPt.y);
-                MoveToEx(hDC, acPt.x, acPt.y - 2, NULL);
-                LineTo(hDC, acPt.x, acPt.y + 3);
+                // Draw as a filled polygon
+                std::vector<POINT> pts = {};
+                pts.push_back({ acPt.x - 2, acPt.y });
+                pts.push_back({ acPt.x,     acPt.y + 2 });
+                pts.push_back({ acPt.x + 2, acPt.y });
+                pts.push_back({ acPt.x,     acPt.y - 2 });
+                pts.push_back({ acPt.x - 2, acPt.y });
+                Polygon(hDC, pts.data(), static_cast<int>(pts.size()));
 
-                SelectObject(hDC, hOldPen);
+                // Draw callsign
+                HFONT hFont = CreateFontA(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                                          ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                          DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+                                          "Courier New");
+                HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
+                SetTextColor(hDC, RGB(255, 255, 0)); // Yellowish color
+                SetBkMode(hDC, TRANSPARENT); // Transparent background
+                TextOutA(hDC, acPt.x + 5, acPt.y - 8, acCallsign.c_str(), static_cast<int>(acCallsign.length()));
+
+                // Cleanup
+                SelectObject(hDC, oldBrush);
+                SelectObject(hDC, oldPen);
+                SelectObject(hDC, hOldFont);
+                DeleteObject(hFont);
+                DeleteObject(hBrush);
                 DeleteObject(hPen);
             }
 
