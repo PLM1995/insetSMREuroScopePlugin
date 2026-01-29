@@ -1,3 +1,4 @@
 #pragma once
 
 const int SELECTINSETSMRAIRCRAFT = 1211;
+const int HIDEINSETSMRBUTTON = 1212;
