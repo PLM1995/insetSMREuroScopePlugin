@@ -15,7 +15,7 @@ namespace RadarScreenNS{
 
     void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
     {
-        // Clicks to select aircraft in inset
+        // Click to select aircraft in inset
         if (Button == EuroScopePlugIn::BUTTON_LEFT && ObjectType == SELECTINSETSMRAIRCRAFT) {
             std::vector<InsetSMRNS::InsetSMR::RadarTargetSnapshot> targets;
             if (plugin) targets = plugin->getActiveRadarTargetSnapshots();
@@ -37,6 +37,14 @@ namespace RadarScreenNS{
                     }
                     break;
                 }
+            }
+        }
+
+        // Click to hide inset
+        else if (Button == EuroScopePlugIn::BUTTON_LEFT && ObjectType == HIDEINSETSMRBUTTON) {
+            SetShowingInsetSMR(false);
+            if (plugin) {
+                plugin->DisplayMessage("InsetSMR hidden. To show again, use \".InsetSMR Show\"", "InsetSMR");
             }
         }
     }
@@ -231,6 +239,27 @@ namespace RadarScreenNS{
             }
 
 //            if (plugin) plugin->LogEvent("OnRefresh end");
+            
+            // Draw and register 'Hide' button in top-right corner of inset
+            RECT hideButtonRect = {
+                insetRect.right,
+                insetRect.top,
+                insetRect.right - 10,
+                insetRect.top + 10
+            };
+            Rectangle(hDC, hideButtonRect.left, hideButtonRect.top, hideButtonRect.right, hideButtonRect.bottom);
+            MoveToEx(hDC, hideButtonRect.left, hideButtonRect.top, NULL);
+            LineTo(hDC, hideButtonRect.right, hideButtonRect.bottom);
+            MoveToEx(hDC, hideButtonRect.right, hideButtonRect.top, NULL);
+            LineTo(hDC, hideButtonRect.left, hideButtonRect.bottom);
+            RECT ClickableHideArea = {
+                hideButtonRect.right,
+                hideButtonRect.top,
+                hideButtonRect.left,
+                hideButtonRect.bottom
+            };
+            AddScreenObject(HIDEINSETSMRBUTTON, "HIDE_BUTTON", ClickableHideArea, false, "");
+
             // Clear clip region
             RestoreDC(hDC, savedDC);
             DeleteObject(clipRgn);
