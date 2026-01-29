@@ -50,11 +50,12 @@ ADD_DEFINITIONS(
 )
 
 SET(SOURCE_FILES
-    src/RadarScreen.cpp
-    src/RadarScreen.h
+    src/constants.h
     src/InsetSMR.cpp
     src/InsetSMR.h
     src/main.cpp
+    src/RadarScreen.cpp
+    src/RadarScreen.h
     src/SectorFileLoad.cpp
     src/SectorFileLoad.h
     src/Version.h

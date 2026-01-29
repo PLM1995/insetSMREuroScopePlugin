@@ -133,4 +133,9 @@ namespace InsetSMRNS
         }
         return snapshots;
     }
+
+    void InsetSMR::SelectAircraftFromFlightPlan(const EuroScopePlugIn::CFlightPlan FlightPlan) {
+        EuroScopePlugIn::CPlugIn::SetASELAircraft (FlightPlan);    // NOTE: Using a RadarTarget seems not to work
+
+    }
 }
