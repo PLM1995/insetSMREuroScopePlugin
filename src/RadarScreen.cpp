@@ -47,6 +47,11 @@ namespace RadarScreenNS{
                 plugin->DisplayMessage("InsetSMR hidden. To show again, use \".InsetSMR Show\"", "InsetSMR");
             }
         }
+
+        // Click to minimise inset
+        else if (Button == EuroScopePlugIn::BUTTON_LEFT && ObjectType == MINIMISEINSETSMRBUTTON) {
+            ToggleInsetSMRMinimised();
+        }
     }
     
     void RadarScreen::OnRefresh(HDC hDC, int phase) {
@@ -55,14 +60,19 @@ namespace RadarScreenNS{
             // Top left inset rectangle
             int insetLeftPosition = 10;
             int insetTopPosition = 50;
-            int insetWidth = 576;
-            int insetHeight = 324;
-            // TODO: Make moveable
-            RECT insetRect = { insetLeftPosition, insetTopPosition, insetLeftPosition + insetWidth, insetTopPosition + insetHeight };
-
-            // Draw border
-            Rectangle(hDC, insetRect.left, insetRect.top, insetRect.right, insetRect.bottom);
-
+            int normalInsetWidth = 576;
+            int normalInsetHeight = 324;
+            int minimisedInsetWidth = 100;
+            int minimisedInsetHeight = 30;
+            
+            // TODO: Make Inset moveable
+            // Size inset based on minimisation
+            RECT insetRect;
+            if (!isInsetSMRMinimised()) {
+                insetRect = { insetLeftPosition, insetTopPosition, insetLeftPosition + normalInsetWidth, insetTopPosition + normalInsetHeight };
+            } else {
+                insetRect = { insetLeftPosition, insetTopPosition, insetLeftPosition + minimisedInsetWidth, insetTopPosition + minimisedInsetHeight };
+            }
             // Set clipping region to inset area
             HRGN clipRgn = CreateRectRgnIndirect(&insetRect);
 
@@ -112,8 +122,8 @@ namespace RadarScreenNS{
                         double firstXNorm = (region.boundaryCoords[0].lon - minLon) / lonRange;
                         double firstYNorm = (region.boundaryCoords[0].lat - minLat) / latRange;
                         POINT firstPt = {
-                            insetLeftPosition + static_cast<LONG>(firstXNorm * insetWidth),
-                            insetTopPosition  + insetHeight - static_cast<LONG>(firstYNorm * insetHeight)
+                            insetLeftPosition + static_cast<LONG>(firstXNorm * normalInsetWidth),
+                            insetTopPosition  + normalInsetHeight - static_cast<LONG>(firstYNorm * normalInsetHeight)
                         };
                         pts.push_back(firstPt);
 
@@ -122,8 +132,8 @@ namespace RadarScreenNS{
                             double xNorm = (region.boundaryCoords[i].lon - minLon) / lonRange;
                             double yNorm = (region.boundaryCoords[i].lat - minLat) / latRange;
                             POINT pt = {
-                                insetLeftPosition + static_cast<LONG>(xNorm * insetWidth),
-                                insetTopPosition  + insetHeight - static_cast<LONG>(yNorm * insetHeight)
+                                insetLeftPosition + static_cast<LONG>(xNorm * normalInsetWidth),
+                                insetTopPosition  + normalInsetHeight - static_cast<LONG>(yNorm * normalInsetHeight)
                             };
                             pts.push_back(pt);
                         }
@@ -150,13 +160,13 @@ namespace RadarScreenNS{
                         double endYNorm   = (geoLine.endLat   - minLat) / latRange;
 
                         POINT startPt = {
-                            insetLeftPosition + static_cast<LONG>(startXNorm * insetWidth),
-                            insetTopPosition  + insetHeight - static_cast<LONG>(startYNorm * insetHeight)
+                            insetLeftPosition + static_cast<LONG>(startXNorm * normalInsetWidth),
+                            insetTopPosition  + normalInsetHeight - static_cast<LONG>(startYNorm * normalInsetHeight)
                         };
 
                         POINT endPt = {
-                            insetLeftPosition + static_cast<LONG>(endXNorm * insetWidth),
-                            insetTopPosition  + insetHeight - static_cast<LONG>(endYNorm * insetHeight)
+                            insetLeftPosition + static_cast<LONG>(endXNorm * normalInsetWidth),
+                            insetTopPosition  + normalInsetHeight - static_cast<LONG>(endYNorm * normalInsetHeight)
                         };
 
                         HPEN hPen = CreatePen(PS_SOLID, 1, RGB(geoLine.colourRed, geoLine.colourGreen, geoLine.colourBlue));
@@ -193,8 +203,8 @@ namespace RadarScreenNS{
                 double acYNorm = (acLat - minLat) / latRange;
 
                 POINT acPt = {
-                    insetLeftPosition + static_cast<LONG>(acXNorm * insetWidth),
-                    insetTopPosition  + insetHeight - static_cast<LONG>(acYNorm * insetHeight)
+                    insetLeftPosition + static_cast<LONG>(acXNorm * normalInsetWidth),
+                    insetTopPosition  + normalInsetHeight - static_cast<LONG>(acYNorm * normalInsetHeight)
                 };
 
                 // Draw aircraft symbol
@@ -240,7 +250,10 @@ namespace RadarScreenNS{
 
 //            if (plugin) plugin->LogEvent("OnRefresh end");
             
-            // Draw and register 'Hide' button in top-right corner of inset
+            // Draw and register buttons in top-right corner of inset
+            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0)); // Black color
+            HPEN oldPen = (HPEN)SelectObject(hDC, hPen);
+            // Draw 'Hide' button
             RECT hideButtonRect = {
                 insetRect.right,
                 insetRect.top,
@@ -252,6 +265,7 @@ namespace RadarScreenNS{
             LineTo(hDC, hideButtonRect.right, hideButtonRect.bottom);
             MoveToEx(hDC, hideButtonRect.right, hideButtonRect.top, NULL);
             LineTo(hDC, hideButtonRect.left, hideButtonRect.bottom);
+            // Register clickable area for 'Hide' button
             RECT ClickableHideArea = {
                 hideButtonRect.right,
                 hideButtonRect.top,
@@ -259,6 +273,48 @@ namespace RadarScreenNS{
                 hideButtonRect.bottom
             };
             AddScreenObject(HIDEINSETSMRBUTTON, "HIDE_BUTTON", ClickableHideArea, false, "");
+            // Draw 'Minimise' button
+            RECT minimiseButtonRect = {
+                hideButtonRect.right,
+                insetRect.top,
+                hideButtonRect.right - 10,
+                insetRect.top + 10
+            };
+            Rectangle(hDC, minimiseButtonRect.left, minimiseButtonRect.top, minimiseButtonRect.right, minimiseButtonRect.bottom);
+            if (!isInsetSMRMinimised()) {
+                MoveToEx(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3, NULL);
+                LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.bottom - 3);
+            } else {
+                MoveToEx(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3, NULL);
+                LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.bottom - 3);
+                LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.top + 3);
+                LineTo(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.top + 3);
+                LineTo(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3);
+            }
+            // Register clickable area for 'Minimise' button
+            RECT ClickableMinimiseArea = {
+                minimiseButtonRect.right,
+                minimiseButtonRect.top,
+                minimiseButtonRect.left,
+                minimiseButtonRect.bottom
+            };
+            AddScreenObject(MINIMISEINSETSMRBUTTON, "MINIMISE_BUTTON", ClickableMinimiseArea, false, "");
+            // Cleanup
+            SelectObject(hDC, oldPen);
+            DeleteObject(hPen);
+
+            // Draw 'InsetSMR' label at top-left of inset
+            HFONT hFont = CreateFontA(16, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+                                      ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                      DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+                                      "Arial");
+            HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
+            SetTextColor(hDC, RGB(255, 255, 255)); // White color
+            SetBkMode(hDC, TRANSPARENT); // Transparent background
+            const char* label = "InsetSMR";
+            TextOutA(hDC, insetRect.left + 5, insetRect.top + 5, label, static_cast<int>(strlen(label)));
+            SelectObject(hDC, hOldFont);
+            DeleteObject(hFont);
 
             // Clear clip region
             RestoreDC(hDC, savedDC);
@@ -281,5 +337,15 @@ namespace RadarScreenNS{
         }
 
         return false; // No change
+    }
+
+    void RadarScreen::ToggleInsetSMRMinimised () {
+        std::lock_guard<std::mutex> lock(insetSMRMinimisedMutex);
+        insetSMRMinimised = !insetSMRMinimised;
+    }
+    
+    bool RadarScreen::isInsetSMRMinimised() {
+        std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
+        return insetSMRMinimised;
     }
 }
