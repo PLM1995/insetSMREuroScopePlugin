@@ -54,6 +54,8 @@ namespace InsetSMRNS
 
         std::vector<RadarTargetSnapshot> getActiveRadarTargetSnapshots();
 
+        void SelectAircraftFromFlightPlan(const EuroScopePlugIn::CFlightPlan FlightPlan);
+
     private:
         RadarScreenNS::RadarScreen* radarScreen = nullptr;
         SectorFileLoadNS::SectorFileLoad* sectorFileLoader = nullptr;

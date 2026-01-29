@@ -5,6 +5,7 @@
  * either version 3 of the License, or (at your option) any later version.
  */
 
+#include "constants.h"
 #include "RadarScreen.h"
 #include "InsetSMR.h"
 #include "SectorFileLoad.h"
@@ -14,7 +15,30 @@ namespace RadarScreenNS{
 
     void RadarScreen::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
     {
-        // TODO: Implement clicks to select aircraft in inset
+        // Clicks to select aircraft in inset
+        if (Button == EuroScopePlugIn::BUTTON_LEFT && ObjectType == SELECTINSETSMRAIRCRAFT) {
+            std::vector<InsetSMRNS::InsetSMR::RadarTargetSnapshot> targets;
+            if (plugin) targets = plugin->getActiveRadarTargetSnapshots();
+            for (const auto &rt : targets) {
+                if (!rt.valid) {
+                    continue;
+                }
+                if (rt.callsign == sObjectId) {
+                    if (plugin) {
+                        auto esFlightPlan = plugin->FlightPlanSelect(rt.callsign.c_str());
+
+//                        if (plugin) plugin->LogEvent("Selecting aircraft from inset: " + rt.callsign);
+
+                        if (esFlightPlan.IsValid()) {
+                            plugin->SelectAircraftFromFlightPlan(esFlightPlan);
+                        }
+
+                        // FIXME: Shows "Unidentified" even when valid?
+                    }
+                    break;
+                }
+            }
+        }
     }
     
     void RadarScreen::OnRefresh(HDC hDC, int phase) {
@@ -182,6 +206,10 @@ namespace RadarScreenNS{
                 pts.push_back({ acPt.x,     acPt.y - 2 });
                 pts.push_back({ acPt.x - 2, acPt.y });
                 Polygon(hDC, pts.data(), static_cast<int>(pts.size()));
+
+                // Register the aircraft as clickable
+                RECT ClickableArea = RECT({ acPt.x - 4, acPt.y - 4, acPt.x + 4, acPt.y + 4 });
+                AddScreenObject(SELECTINSETSMRAIRCRAFT, acCallsign.c_str(), ClickableArea, false, "");
 
                 // Draw callsign
                 HFONT hFont = CreateFontA(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
