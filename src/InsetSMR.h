@@ -6,8 +6,11 @@
  */
 
 #pragma once
-#include "RadarScreen.h"
+#include "ViewCoordinates.h"
 #include "SectorFileLoad.h"
+
+// Forward declare RadarScreen namespace/class to avoid circular include
+namespace RadarScreenNS { class RadarScreen; }
 
 #pragma warning(push, 0)
 #include "EuroScopePlugIn.h"
@@ -55,9 +58,25 @@ namespace InsetSMRNS
             bool valid = false;
         };
 
+        // ViewCoordinates is defined in ViewCoordinates.h
+
+        struct Airport {
+            std::string ICAO;
+            std::vector<std::string> RelevantGeoNames;
+            std::vector<std::string> RelevantRegionNames;
+            ViewCoordinates SMRViewCoordinates;
+            //std::vector<ViewCoordinates> RunwayHoldViewCoordinates;
+        };
+
         std::vector<RadarTargetSnapshot> getActiveRadarTargetSnapshots();
 
         void SelectAircraftFromFlightPlan(const EuroScopePlugIn::CFlightPlan FlightPlan);
+
+        std::vector<Airport> getLoadedAirports();
+        
+        Airport getActiveAirport();
+
+        bool setActiveAirport(std::string ICAO);
 
     private:
         RadarScreenNS::RadarScreen* radarScreen = nullptr;
@@ -65,5 +84,8 @@ namespace InsetSMRNS
         std::mutex ActiveRadarTargetsMutex;
         std::mutex LogMutex;
         std::vector<RadarTargetSnapshot> ActiveRadarTargets = {};
+
+        Airport activeAirport = {};
+        std::mutex ActiveAirportMutex;
     };
 }

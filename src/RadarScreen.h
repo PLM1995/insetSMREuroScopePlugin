@@ -17,6 +17,7 @@
 namespace InsetSMRNS {
     class InsetSMR;
 }
+#include "ViewCoordinates.h"
 
 namespace RadarScreenNS 
 {
@@ -31,6 +32,8 @@ namespace RadarScreenNS
 
         bool SetShowingInsetSMR(bool show);
 
+        void SetInsetViewArea(InsetSMRNS::ViewCoordinates viewArea);
+
     private:
         InsetSMRNS::InsetSMR* plugin;
 
@@ -42,5 +45,9 @@ namespace RadarScreenNS
         bool insetSMRMinimised = false;
         std::mutex insetSMRMinimisedMutex;
         bool isInsetSMRMinimised();
+
+        InsetSMRNS::ViewCoordinates insetViewArea = { -4.453889, 55.861389, -4.416389, 55.880833 }; // Default is EGPF
+        InsetSMRNS::ViewCoordinates getInsetViewArea();
+        std::mutex insetViewAreaMutex;
     };
 }

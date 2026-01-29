@@ -80,21 +80,20 @@ namespace RadarScreenNS{
             int savedDC = SaveDC(hDC);
             SelectClipRgn(hDC, clipRgn);
 
-            // FIXME: Change from hard coded values to configurable / based on airport
-            double minLon = -4.453889;
-            double maxLon = -4.416389;
-            double minLat = 55.861389;
-            double maxLat = 55.880833;
-        
-            double lonRange = maxLon - minLon;
-            double latRange = maxLat - minLat;
+            // Get the area to view
+            InsetSMRNS::ViewCoordinates viewArea = getInsetViewArea();
+
+            // Evaluate view ranges (for scaling)
+            double lonRange = viewArea.maxViewLon - viewArea.minViewLon;
+            double latRange = viewArea.maxViewLat - viewArea.minViewLat;
+
             // Avoid divide‑by‑zero
             if (lonRange <= 0.0 || latRange <= 0.0){
                 plugin->DisplayMessage("Invalid lat/lon range for inset drawing", "RadarScreen");
                 return;
             }
 
-            // Draw loaded GEO lines and REGIONS
+            // Draw loaded SMR background (GEO lines and REGIONS)
             if (plugin) {
                 auto sectorFileLoader = plugin->GetSectorFileLoader();
                 if (sectorFileLoader) {
@@ -119,8 +118,8 @@ namespace RadarScreenNS{
                         pts.reserve(region.boundaryCoords.size() + 1);
 
                         // Save first point
-                        double firstXNorm = (region.boundaryCoords[0].lon - minLon) / lonRange;
-                        double firstYNorm = (region.boundaryCoords[0].lat - minLat) / latRange;
+                        double firstXNorm = (region.boundaryCoords[0].lon - viewArea.minViewLon) / lonRange;
+                        double firstYNorm = (region.boundaryCoords[0].lat - viewArea.minViewLat) / latRange;
                         POINT firstPt = {
                             insetLeftPosition + static_cast<LONG>(firstXNorm * normalInsetWidth),
                             insetTopPosition  + normalInsetHeight - static_cast<LONG>(firstYNorm * normalInsetHeight)
@@ -129,8 +128,8 @@ namespace RadarScreenNS{
 
                         // Save subsequent points
                         for (size_t i = 1; i < region.boundaryCoords.size(); ++i) {
-                            double xNorm = (region.boundaryCoords[i].lon - minLon) / lonRange;
-                            double yNorm = (region.boundaryCoords[i].lat - minLat) / latRange;
+                            double xNorm = (region.boundaryCoords[i].lon - viewArea.minViewLon) / lonRange;
+                            double yNorm = (region.boundaryCoords[i].lat - viewArea.minViewLat) / latRange;
                             POINT pt = {
                                 insetLeftPosition + static_cast<LONG>(xNorm * normalInsetWidth),
                                 insetTopPosition  + normalInsetHeight - static_cast<LONG>(yNorm * normalInsetHeight)
@@ -154,10 +153,10 @@ namespace RadarScreenNS{
                     // Draw each GEO line
                     auto geoLines = sectorFileLoader->getGeoLines();
                     for (const auto &geoLine : *geoLines) {
-                        double startXNorm = (geoLine.startLon - minLon) / lonRange;
-                        double startYNorm = (geoLine.startLat - minLat) / latRange;
-                        double endXNorm   = (geoLine.endLon   - minLon) / lonRange;
-                        double endYNorm   = (geoLine.endLat   - minLat) / latRange;
+                        double startXNorm = (geoLine.startLon - viewArea.minViewLon) / lonRange;
+                        double startYNorm = (geoLine.startLat - viewArea.minViewLat) / latRange;
+                        double endXNorm   = (geoLine.endLon   - viewArea.minViewLon) / lonRange;
+                        double endYNorm   = (geoLine.endLat   - viewArea.minViewLat) / latRange;
 
                         POINT startPt = {
                             insetLeftPosition + static_cast<LONG>(startXNorm * normalInsetWidth),
@@ -195,12 +194,12 @@ namespace RadarScreenNS{
                 std::string acCallsign = rt.callsign;
 
                 // Check if within inset bounds
-                if (acLon < minLon || acLon > maxLon || acLat < minLat || acLat > maxLat) {
+                if (acLon < viewArea.minViewLon || acLon > viewArea.maxViewLon || acLat < viewArea.minViewLat || acLat > viewArea.maxViewLat) {
                     continue;
                 }
 
-                double acXNorm = (acLon - minLon) / lonRange;
-                double acYNorm = (acLat - minLat) / latRange;
+                double acXNorm = (acLon - viewArea.minViewLon) / lonRange;
+                double acYNorm = (acLat - viewArea.minViewLat) / latRange;
 
                 POINT acPt = {
                     insetLeftPosition + static_cast<LONG>(acXNorm * normalInsetWidth),
@@ -282,9 +281,11 @@ namespace RadarScreenNS{
             };
             Rectangle(hDC, minimiseButtonRect.left, minimiseButtonRect.top, minimiseButtonRect.right, minimiseButtonRect.bottom);
             if (!isInsetSMRMinimised()) {
+                // Undescore symbol at bottom of button
                 MoveToEx(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3, NULL);
                 LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.bottom - 3);
             } else {
+                // Box symbol in button
                 MoveToEx(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3, NULL);
                 LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.bottom - 3);
                 LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.top + 3);
@@ -337,6 +338,20 @@ namespace RadarScreenNS{
         }
 
         return false; // No change
+    }
+
+    void RadarScreen::SetInsetViewArea(InsetSMRNS::ViewCoordinates viewArea) {
+        std::lock_guard<std::mutex> lock(insetViewAreaMutex);
+        insetViewArea = viewArea;
+        if (plugin) {
+            plugin->LogEvent("insetViewArea set with values: " + std::to_string(insetViewArea.maxViewLat) + " " + std::to_string(insetViewArea.minViewLat) + " " + std::to_string(insetViewArea.maxViewLon) + " " + std::to_string(insetViewArea.minViewLon));
+        }
+    }
+
+    InsetSMRNS::ViewCoordinates RadarScreen::getInsetViewArea() {
+        std::lock_guard<std::mutex> lock(insetViewAreaMutex);
+        InsetSMRNS::ViewCoordinates snapshot = insetViewArea;
+        return snapshot;
     }
 
     void RadarScreen::ToggleInsetSMRMinimised () {

@@ -31,10 +31,23 @@ IF ERRORLEVEL 1 (
     exit /b 1
 )
 
+REM Creating Plugin directory if required
+IF NOT EXIST "%APPDATA%\EuroScope\UK\Data\Plugin\InsetSMR\" (
+    MKDIR "%APPDATA%\EuroScope\UK\Data\Plugin\InsetSMR\"
+    echo Created directory for the plugin.
+)
+
 REM Copy DLL to EuroScope plugin folder
-copy ".\build\%BUILD_TYPE%\InsetSMR.dll" "%APPDATA%\EuroScope\UK\Data\Plugin\InsetSMR.dll"
+copy ".\build\%BUILD_TYPE%\InsetSMR.dll" "%APPDATA%\EuroScope\UK\Data\Plugin\InsetSMR\InsetSMR.dll"
 IF ERRORLEVEL 1 (
     echo Failed to copy plugin DLL.
+    exit /b 1
+)
+
+REM Copy config.json to EuroScope plugin folder
+copy ".\config.json" "%APPDATA%\EuroScope\UK\Data\Plugin\InsetSMR\Config.json"
+IF ERRORLEVEL 1 (
+    echo Failed to copy config JSON.
     exit /b 1
 )
 

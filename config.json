@@ -1,0 +1,38 @@
+[
+    {
+        "EGLL": {
+            "icao": "EGLL",
+            "SMR_GEOs": [
+                "EGLL Heathrow",
+                "EGLL Heathrow Bealine+Maintenance"
+            ],
+            "SMR_REGIONs": [
+                "Heathrow",
+                "Heathrow Bealine+Maintenance"
+            ],
+            "SMR_COORDs":{
+                "minLon": -0.497728,
+                "maxLon": -0.413203,
+                "minLat": 51.451669,
+                "maxLat": 51.480933
+            }
+        }
+    },
+    {
+        "EGPF": {
+            "icao": "EGPF",
+            "SMR_GEOs": [
+                "EGPF Glasgow"
+            ],
+            "SMR_REGIONs": [
+                "Glasgow"
+            ],
+            "SMR_COORDs":{
+                "minLon": -4.453889,
+                "maxLon": -4.416389,
+                "minLat": 55.861389,
+                "maxLat": 55.880833
+            }
+        }
+    }
+]

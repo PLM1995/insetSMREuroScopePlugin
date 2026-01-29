@@ -59,6 +59,7 @@ SET(SOURCE_FILES
     src/SectorFileLoad.cpp
     src/SectorFileLoad.h
     src/Version.h
+    src/ViewCoordinates.h
 )
 
 ADD_LIBRARY(InsetSMR SHARED ${SOURCE_FILES})

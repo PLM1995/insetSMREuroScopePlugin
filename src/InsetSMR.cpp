@@ -11,6 +11,9 @@
 #include "Version.h"
 
 #include <fstream>
+#include <filesystem>
+#include "json.hpp"
+using json = nlohmann::json;
 #include <chrono>
 #include <ctime>
 #include <iomanip>
@@ -27,6 +30,12 @@ namespace InsetSMRNS
         // Load sector file
         sectorFileLoader = new SectorFileLoadNS::SectorFileLoad(this);
         sectorFileLoader->LoadSectorFile();
+    }
+
+    InsetSMR::~InsetSMR()
+    {
+//        LogEvent("InsetSMR destructing");
+        // Don't delete radarScreen: EuroScope owns RadarScreen instances created in OnRadarScreenCreated.
     }
 
     void InsetSMR::LogEvent(const std::string &message) {
@@ -46,11 +55,6 @@ namespace InsetSMRNS
         localtime_s(&tm, &t);
 
         ofs << "[" << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] " << message << std::endl;
-    }
-    InsetSMR::~InsetSMR()
-    {
-//        LogEvent("InsetSMR destructing");
-        // Don't delete radarScreen: EuroScope owns RadarScreen instances created in OnRadarScreenCreated.
     }
 
     void InsetSMR::DisplayMessage(const std::string &message, const std::string &sender)
@@ -136,8 +140,12 @@ namespace InsetSMRNS
                     return true; // Command handled
                 }
 
-                // TODO: Implement changing the inset airport
-                DisplayMessage(("Unable to change airport to " + AirportRequested).c_str(), "NOT SUPPORTED YET");
+                // Change the inset airport
+                if (!setActiveAirport(AirportRequested)) {
+                    DisplayMessage(AirportRequested.c_str(), "Error setting airport to");
+                } else {
+                    DisplayMessage(AirportRequested.c_str(), "Set active airport to");
+                }
                 return true; // Command handled
             }
 
@@ -183,6 +191,109 @@ namespace InsetSMRNS
 
     void InsetSMR::SelectAircraftFromFlightPlan(const EuroScopePlugIn::CFlightPlan FlightPlan) {
         EuroScopePlugIn::CPlugIn::SetASELAircraft (FlightPlan);    // NOTE: Using a RadarTarget seems not to work
+    }
+        
+    InsetSMR::Airport InsetSMR::getActiveAirport() {
+        std::lock_guard<std::mutex> lock(ActiveAirportMutex);
+        Airport snapshot;
+        snapshot = activeAirport;
+        return snapshot;
+    }
 
+    bool InsetSMR::setActiveAirport(std::string ICAO) {
+//        LogEvent("setActiveAiport function called for " + ICAO);
+        // Check if this is already the active airport
+        if (getActiveAirport().ICAO == ICAO) {
+            DisplayMessage("Airport already set as active", "Unable:");
+            return false;
+        }
+
+        // TODO: Move this JSON Parsing block somewhere more sensible.
+        // Look up needed Geo and Region names based on ICAO
+        // Load config file
+        std::filesystem::path ConfigFilePath = "UK/Data/Plugin/InsetSMR/Config.json";
+        std::ifstream configFileStream(ConfigFilePath);
+        if (std::filesystem::exists(ConfigFilePath) == false) {
+            // File not found
+            DisplayMessage(ConfigFilePath.string().c_str(), "Config file not found at");
+            return false;
+        }
+        else {
+//            DisplayMessage(ConfigFilePath.string().c_str(), "Loading config file from");
+        }
+        if (!configFileStream.is_open()) {
+            DisplayMessage("Failed to open config file", "Error");
+            return false;
+        }
+
+        // Parse the config file into a JSON Array
+        json config;
+        configFileStream >> config;
+
+        // Read data
+        std::vector<std::string> RelevantGeoNames;
+        std::vector<std::string> RelevantRegionNames;
+        ViewCoordinates SMRViewCoordinates;
+        bool AirportInJSON = false;
+        for (const auto& airport : config) {
+            // Only load the needed airport data
+            if (!airport.contains(ICAO)) {
+                continue;
+            } else {
+                AirportInJSON = true;
+            }
+            // Load the JSON data into the variables
+            for (auto& [config_icao, config_info] : airport.items()) {
+                // Extract SMR_GEOs
+                if (config_info.contains("SMR_GEOs")) {
+                    for (const auto& geo : config_info["SMR_GEOs"]) {
+                        RelevantGeoNames.push_back(geo);
+                    }
+                }
+                // Extract SMR_REGIONs
+                if (config_info.contains("SMR_REGIONs")) {
+                    for (const auto& region : config_info["SMR_REGIONs"]) {
+                        RelevantRegionNames.push_back(region);
+                    }
+                }
+                // Extract SMR View
+                if (config_info.contains("SMR_COORDs")) {
+                    const auto& coords = config_info["SMR_COORDs"];
+                    if (coords.contains("minLon")) {
+                        SMRViewCoordinates.minViewLon = coords["minLon"].get<double>();
+                    }
+                    if (coords.contains("maxLon")) {
+                        SMRViewCoordinates.maxViewLon = coords["maxLon"].get<double>();
+                    }
+                    if (coords.contains("minLat")) {
+                        SMRViewCoordinates.minViewLat = coords["minLat"].get<double>();
+                    }
+                    if (coords.contains("maxLat")) {
+                        SMRViewCoordinates.maxViewLat = coords["maxLat"].get<double>();
+                    }
+                }
+            }
+        }
+
+        // Failed to find data to use
+        if (!AirportInJSON) {
+            return false;
+        }
+
+//        LogEvent("about to update the active airport to: " + ICAO);
+
+        // Update the active airport
+        std::lock_guard<std::mutex> lock(ActiveAirportMutex);
+        activeAirport = { ICAO, RelevantGeoNames, RelevantRegionNames, SMRViewCoordinates };
+
+//        LogEvent("activeAirport object has been updated");
+
+        // Set Radar View Inset Area appropriately
+        // TODO: Allow other options (e.g. holding areas only) not just full SMR
+        ViewCoordinates viewCoordinates = activeAirport.SMRViewCoordinates;
+//        LogEvent("viewCoordinates set from active airport");
+        radarScreen->SetInsetViewArea(viewCoordinates);
+//        LogEvent("radarScreen should now be updated");
+        return true; // Successfully set active airport
     }
 }
