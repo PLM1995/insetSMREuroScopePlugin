@@ -37,6 +37,7 @@ namespace InsetSMRNS
 
         void DisplayMessage(const std::string &message,
                             const std::string &sender = "InsetSMR");
+
         void LogEvent(const std::string &message);
 
         virtual void OnRadarTargetPositionUpdate (EuroScopePlugIn::CRadarTarget RadarTarget);
@@ -44,6 +45,8 @@ namespace InsetSMRNS
         virtual void OnFlightPlanDisconnect (EuroScopePlugIn::CFlightPlan FlightPlan);
 
         virtual EuroScopePlugIn::CRadarScreen * OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
+
+        virtual bool OnCompileCommand ( const char * sCommandLine );
 
         struct RadarTargetSnapshot {
             double lon = 0.0;
