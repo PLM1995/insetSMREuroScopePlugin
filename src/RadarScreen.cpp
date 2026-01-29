@@ -42,7 +42,7 @@ namespace RadarScreenNS{
     }
     
     void RadarScreen::OnRefresh(HDC hDC, int phase) {
-        if(phase == EuroScopePlugIn::REFRESH_PHASE_AFTER_TAGS) {
+        if(phase == EuroScopePlugIn::REFRESH_PHASE_AFTER_TAGS && isShowingInsetSMR()) {
 //            if (plugin) plugin->LogEvent("OnRefresh start");
             // Top left inset rectangle
             int insetLeftPosition = 10;
@@ -235,5 +235,22 @@ namespace RadarScreenNS{
             RestoreDC(hDC, savedDC);
             DeleteObject(clipRgn);
         }
+    }
+
+    bool RadarScreen::isShowingInsetSMR() {
+        std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
+        return showingInsetSMR;
+    }
+
+    bool RadarScreen::SetShowingInsetSMR(bool newState) {
+        std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
+        bool existingState = showingInsetSMR;
+
+        if (newState != existingState) {
+            showingInsetSMR = newState;
+            return true; // State changed
+        }
+
+        return false; // No change
     }
 }

@@ -120,7 +120,8 @@ namespace InsetSMRNS
         DisplayMessage((std::string("On ") + sDisplayName).c_str(), "Activation");
 //        LogEvent(std::string("OnRadarScreenCreated: ") + sDisplayName);
         // Create a new RadarScreen for EuroScope to own.
-        return new RadarScreenNS::RadarScreen(this);
+        radarScreen = new RadarScreenNS::RadarScreen(this);
+        return radarScreen;
     }
 
     bool InsetSMR::OnCompileCommand ( const char * sCommandLine ) {
@@ -142,13 +143,21 @@ namespace InsetSMRNS
 
             // Handle .INSETSMR HIDE
             else if (UpperCommand.find(".INSETSMR HIDE") != std::string::npos) {
-                DisplayMessage("Hiding InsetSMR is not yet supported", "NOT SUPPORTED YET");
+                if (radarScreen->SetShowingInsetSMR(false)) {
+                    DisplayMessage("InsetSMR, To show again, use \".InsetSMR Show\"", "Hiding");
+                } else {
+                    DisplayMessage("InsetSMR", "Already hidden");
+                }
                 return true; // Command handled
             }
 
             // Handle .INSETSMR SHOW
             else if (UpperCommand.find(".INSETSMR SHOW") != std::string::npos) {
-                DisplayMessage("Showing InsetSMR is not yet supported", "NOT SUPPORTED YET");
+                if (radarScreen->SetShowingInsetSMR(true)) {
+                    DisplayMessage("InsetSMR. To hide again, use \".InsetSMR Hide\"", "Showing");
+                } else {
+                    DisplayMessage("InsetSMR", "Already showing");
+                }
                 return true; // Command handled
             }
           

@@ -5,11 +5,13 @@
  * either version 3 of the License, or (at your option) any later version.
  */
 
- #pragma once
+#pragma once
 
 #pragma warning(push, 0)
 #include "EuroScopePlugIn.h"
 #pragma warning(pop)
+
+#include <mutex>
 
 //Forward Declaration
 namespace InsetSMRNS {
@@ -27,7 +29,13 @@ namespace RadarScreenNS
         virtual void OnRefresh(HDC hDC, int phase);
         virtual void OnAsrContentToBeClosed() override { /* no-op */ }
 
+        bool SetShowingInsetSMR(bool show);
+
     private:
         InsetSMRNS::InsetSMR* plugin;
+
+        bool isShowingInsetSMR();
+        bool showingInsetSMR = true;
+        std::mutex showingInsetSMRMutex;
     };
 }
