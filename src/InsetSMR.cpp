@@ -123,6 +123,44 @@ namespace InsetSMRNS
         return new RadarScreenNS::RadarScreen(this);
     }
 
+    bool InsetSMR::OnCompileCommand ( const char * sCommandLine ) {
+        // Handle custom commands here
+        std::string UpperCommand = _strupr(_strdup(sCommandLine));
+        if (UpperCommand.find(".INSETSMR") != std::string::npos) {
+            // Handle .INSETSMR AIRPORT <ICAO>
+            if (UpperCommand.find(".INSETSMR AIRPORT ") != std::string::npos) {
+                std::string AirportRequested = std::string(UpperCommand).substr(18); // Length of ".INSETSMR AIRPORT "
+                if (AirportRequested.length() != 4) {
+                    DisplayMessage("Please ensure the requested airport is a 4-letter ICAO code", "Unable to change InsetSMR airport");
+                    return true; // Command handled
+                }
+
+                // TODO: Implement changing the inset airport
+                DisplayMessage(("Unable to change airport to " + AirportRequested).c_str(), "NOT SUPPORTED YET");
+                return true; // Command handled
+            }
+
+            // Handle .INSETSMR HIDE
+            else if (UpperCommand.find(".INSETSMR HIDE") != std::string::npos) {
+                DisplayMessage("Hiding InsetSMR is not yet supported", "NOT SUPPORTED YET");
+                return true; // Command handled
+            }
+
+            // Handle .INSETSMR SHOW
+            else if (UpperCommand.find(".INSETSMR SHOW") != std::string::npos) {
+                DisplayMessage("Showing InsetSMR is not yet supported", "NOT SUPPORTED YET");
+                return true; // Command handled
+            }
+          
+            // Unknown .INSETSMR command
+            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
+                           "InsetSMR Command Error");
+
+            return true; // Command handled
+        }
+        return false; // Command not handled
+    }
+
     std::vector<InsetSMR::RadarTargetSnapshot> InsetSMR::getActiveRadarTargetSnapshots() {
         std::lock_guard<std::mutex> lock(ActiveRadarTargetsMutex);
         // ActiveRadarTargets already stores POD snapshots. Return a copy under lock.
