@@ -37,5 +37,10 @@ namespace RadarScreenNS
         bool isShowingInsetSMR();
         bool showingInsetSMR = true;
         std::mutex showingInsetSMRMutex;
+
+        void ToggleInsetSMRMinimised();
+        bool insetSMRMinimised = false;
+        std::mutex insetSMRMinimisedMutex;
+        bool isInsetSMRMinimised();
     };
 }
