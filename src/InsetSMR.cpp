@@ -23,13 +23,25 @@ namespace InsetSMRNS
 {
     InsetSMR::InsetSMR() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR, PLUGIN_LICENSE), radarScreen(nullptr)
     {
+        try {
 //        LogEvent("InsetSMR constructed");
-        // Report Initialised
-        DisplayMessage("Version " + std::string(PLUGIN_VERSION) + " loaded", "Initialisation");
+            // Report Initialised
+            DisplayMessage("Version " + std::string(PLUGIN_VERSION) + " loaded", "Initialisation");
 
-        // Load sector file
-        sectorFileLoader = new SectorFileLoadNS::SectorFileLoad(this);
-        sectorFileLoader->LoadSectorFile();
+            // Create sector file loader before setting active airport (loader used by setActiveAirport)
+            sectorFileLoader = new SectorFileLoadNS::SectorFileLoad(this);
+
+            // Initialise Active Airport (default invalid)
+            setActiveAirport("ZZZZ"); // TODO: Consider best default.
+        }
+        catch (const std::exception &ex) {
+            try { LogEvent(std::string("Exception in InsetSMR ctor: ") + ex.what()); } catch(...) {}
+            DisplayMessage("InsetSMR failed to initialize (see log)", "InsetSMR");
+        }
+        catch (...) {
+            try { LogEvent("Unknown exception in InsetSMR ctor"); } catch(...) {}
+            DisplayMessage("InsetSMR failed to initialize (see log)", "InsetSMR");
+        }
     }
 
     InsetSMR::~InsetSMR()
@@ -39,22 +51,28 @@ namespace InsetSMRNS
     }
 
     void InsetSMR::LogEvent(const std::string &message) {
-        std::lock_guard<std::mutex> lock(LogMutex);
-        char tempPath[MAX_PATH];
-        if (GetTempPathA(MAX_PATH, tempPath) == 0) {
-            return; // can't get temp path
+        // Protect LogEvent from throwing due to transient filesystem / sharing errors
+        try {
+            std::lock_guard<std::mutex> lock(LogMutex);
+            char tempPath[MAX_PATH];
+            if (GetTempPathA(MAX_PATH, tempPath) == 0) {
+                return; // can't get temp path
+            }
+            std::string filePath = std::string(tempPath) + "InsetSMR.log";
+
+            std::ofstream ofs(filePath, std::ios::app);
+            if (!ofs.is_open()) return;
+
+            auto now = std::chrono::system_clock::now();
+            std::time_t t = std::chrono::system_clock::to_time_t(now);
+            std::tm tm;
+            localtime_s(&tm, &t);
+
+            ofs << "[" << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] " << message << std::endl;
+        } catch (...) {
+            // Swallow any exceptions from logging (filesystem/sharing/IO errors can occur,
+            // e.g. OneDrive/antivirus holding the file). Don't let logging break plugin.
         }
-        std::string filePath = std::string(tempPath) + "InsetSMR.log";
-
-        std::ofstream ofs(filePath, std::ios::app);
-        if (!ofs.is_open()) return;
-
-        auto now = std::chrono::system_clock::now();
-        std::time_t t = std::chrono::system_clock::to_time_t(now);
-        std::tm tm;
-        localtime_s(&tm, &t);
-
-        ofs << "[" << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << "] " << message << std::endl;
     }
 
     void InsetSMR::DisplayMessage(const std::string &message, const std::string &sender)
@@ -125,6 +143,9 @@ namespace InsetSMRNS
 //        LogEvent(std::string("OnRadarScreenCreated: ") + sDisplayName);
         // Create a new RadarScreen for EuroScope to own.
         radarScreen = new RadarScreenNS::RadarScreen(this);
+
+        setActiveAirport("EGPF");
+
         return radarScreen;
     }
 
@@ -151,6 +172,10 @@ namespace InsetSMRNS
 
             // Handle .INSETSMR HIDE
             else if (UpperCommand.find(".INSETSMR HIDE") != std::string::npos) {
+                if (!radarScreen) {
+                    DisplayMessage("No radar screen available to hide", "InsetSMR");
+                    return true;
+                }
                 if (radarScreen->SetShowingInsetSMR(false)) {
                     DisplayMessage("InsetSMR, To show again, use \".InsetSMR Show\"", "Hiding");
                 } else {
@@ -161,6 +186,10 @@ namespace InsetSMRNS
 
             // Handle .INSETSMR SHOW
             else if (UpperCommand.find(".INSETSMR SHOW") != std::string::npos) {
+                if (!radarScreen) {
+                    DisplayMessage("No radar screen available to show", "InsetSMR");
+                    return true;
+                }
                 if (radarScreen->SetShowingInsetSMR(true)) {
                     DisplayMessage("InsetSMR. To hide again, use \".InsetSMR Hide\"", "Showing");
                 } else {
@@ -194,17 +223,56 @@ namespace InsetSMRNS
     }
         
     InsetSMR::Airport InsetSMR::getActiveAirport() {
-        std::lock_guard<std::mutex> lock(ActiveAirportMutex);
-        Airport snapshot;
-        snapshot = activeAirport;
-        return snapshot;
+        try {
+            if (this) {
+                try { LogEvent("getActiveAirport: entry"); } catch(...) {}
+            }
+
+            // Copy the active airport under lock, but avoid performing filesystem I/O
+            // (LogEvent) while holding the ActiveAirportMutex to prevent IO-related
+            // exceptions or blocking from propagating into this function.
+            Airport snapshot;
+            try {
+                std::lock_guard<std::mutex> lock(ActiveAirportMutex);
+                snapshot = activeAirport; // <-- narrow try/catch around the copy
+            } catch (const std::exception &ex) {
+                // Use OutputDebugStringA for diagnostics because filesystem logging
+                // may be the cause of failures; OutputDebugStringA is low-overhead
+                // and does not rely on disk I/O.
+                try {
+                    std::string msg = "getActiveAirport: exception during copy: ";
+                    msg += ex.what();
+                    msg += "\n";
+                    OutputDebugStringA(msg.c_str());
+                } catch(...) {}
+                return Airport();
+            } catch (...) {
+                try { OutputDebugStringA("getActiveAirport: unknown exception during copy\n"); } catch(...) {}
+                return Airport();
+            }
+
+            try {
+                LogEvent(std::string("getActiveAirport: copying activeAirport.ICAO=") + snapshot.ICAO);
+                LogEvent(std::string("getActiveAirport: copy done, geoNames=") + std::to_string(snapshot.RelevantGeoNames.size()));
+            } catch(...) {
+                // LogEvent is already hardened, but swallow any logging errors here too.
+            }
+
+            return snapshot;
+        } catch (const std::exception &ex) {
+            try { LogEvent(std::string("getActiveAirport exception: ") + ex.what()); } catch(...) {}
+            return Airport();
+        } catch (...) {
+            try { LogEvent("getActiveAirport unknown exception"); } catch(...) {}
+            return Airport();
+        }
     }
 
     bool InsetSMR::setActiveAirport(std::string ICAO) {
 //        LogEvent("setActiveAiport function called for " + ICAO);
         // Check if this is already the active airport
         if (getActiveAirport().ICAO == ICAO) {
-            DisplayMessage("Airport already set as active", "Unable:");
+            DisplayMessage("Airport already set as active", "Unable");
             return false;
         }
 
@@ -228,12 +296,17 @@ namespace InsetSMRNS
 
         // Parse the config file into a JSON Array
         json config;
-        configFileStream >> config;
+        try {
+            configFileStream >> config;
+        } catch (const std::exception &ex) {
+            LogEvent(std::string("Failed to parse Config.json: ") + ex.what());
+            return false;
+        }
 
         // Read data
         std::vector<std::string> RelevantGeoNames;
         std::vector<std::string> RelevantRegionNames;
-        ViewCoordinates SMRViewCoordinates;
+        ViewCoordinates SMRViewCoordinates{}; // zero-init to avoid uninitialized values
         bool AirportInJSON = false;
         for (const auto& airport : config) {
             // Only load the needed airport data
@@ -282,17 +355,36 @@ namespace InsetSMRNS
 
 //        LogEvent("about to update the active airport to: " + ICAO);
 
-        // Update the active airport
-        std::lock_guard<std::mutex> lock(ActiveAirportMutex);
-        activeAirport = { ICAO, RelevantGeoNames, RelevantRegionNames, SMRViewCoordinates };
+        // Update the active airport (hold the lock only for the assignment)
+        {
+            std::lock_guard<std::mutex> lock(ActiveAirportMutex);
+            activeAirport = { ICAO, RelevantGeoNames, RelevantRegionNames, SMRViewCoordinates };
+        }
+
+        // Re-load the sector data (as the sector file loading is airport specific).
+        // IMPORTANT: do not hold ActiveAirportMutex while calling into loader
+        // because loader may call back into plugin and attempt to acquire the
+        // same mutex (causing deadlock) or perform I/O that could block.
+        try {
+            if (sectorFileLoader) {
+                LogEvent("Calling SectorFileLoad::LoadSectorFile");
+                sectorFileLoader->LoadSectorFile();
+                LogEvent("Returned from SectorFileLoad::LoadSectorFile");
+            }
+        } catch (const std::exception &ex) {
+            LogEvent(std::string("Exception loading sector file: ") + ex.what());
+            // non-fatal: continue without crashing the plugin
+        }
 
 //        LogEvent("activeAirport object has been updated");
 
-        // Set Radar View Inset Area appropriately
-        // TODO: Allow other options (e.g. holding areas only) not just full SMR
-        ViewCoordinates viewCoordinates = activeAirport.SMRViewCoordinates;
+        // Set Radar View Inset Area appropriately (if radar screen exists)
+        // Obtain a snapshot of active airport to read SMR view coordinates safely
+        ViewCoordinates viewCoordinates = getActiveAirport().SMRViewCoordinates;
 //        LogEvent("viewCoordinates set from active airport");
-        radarScreen->SetInsetViewArea(viewCoordinates);
+        if (radarScreen) {
+            radarScreen->SetInsetViewArea(viewCoordinates);
+        }
 //        LogEvent("radarScreen should now be updated");
         return true; // Successfully set active airport
     }

@@ -66,9 +66,11 @@ namespace SectorFileLoadNS {
         
         int getColourCodeFromName(const std::string& colourName);
         
-        void updateGeoLineFromStrings(GeoLine& geoLine);
+        bool updateGeoLineFromStrings(GeoLine& geoLine);
         
         void updateRegionFromStrings(Region& region);
+
+        bool try_dms_to_decimal(const std::string& coord_str, double &out);
 
         std::vector<SectorFileLoadNS::SectorFileLoad::GeoLine> geoLines;
 
