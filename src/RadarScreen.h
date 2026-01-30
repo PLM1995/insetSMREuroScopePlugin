@@ -35,6 +35,8 @@ namespace RadarScreenNS
 
         void SetInsetViewArea(InsetSMRNS::ViewCoordinates viewArea);
 
+        void SetScaleFactor(int newScaleFactor);
+
     private:
         // Initially top-left corner
         // TODO: Allow saving/loading of position to/from the .asr
@@ -54,5 +56,11 @@ namespace RadarScreenNS
         InsetSMRNS::ViewCoordinates insetViewArea = { -4.453889, 55.861389, -4.416389, 55.880833 }; // Default is EGPF
         InsetSMRNS::ViewCoordinates getInsetViewArea();
         std::mutex insetViewAreaMutex;
+
+        const int normalInsetWidth1 = 192;
+        const int normalInsetHeight1 = 108;
+        int scaleFactor = 3;
+        std::mutex scaleFactorMutex;
+        int getScaleFactor();
     };
 }
