@@ -27,6 +27,7 @@ namespace RadarScreenNS
         RadarScreen(InsetSMRNS::InsetSMR* pluginInstance);
 
         virtual void OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button);
+        virtual void OnMoveScreenObject ( int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released );
         virtual void OnRefresh(HDC hDC, int phase);
         virtual void OnAsrContentToBeClosed() override { /* no-op */ }
 
@@ -35,6 +36,10 @@ namespace RadarScreenNS
         void SetInsetViewArea(InsetSMRNS::ViewCoordinates viewArea);
 
     private:
+        // Initially top-left corner
+        // TODO: Allow saving/loading of position to/from the .asr
+        POINT insetTopLeftPosition = { 10, 50 };
+
         InsetSMRNS::InsetSMR* plugin;
 
         bool isShowingInsetSMR();
