@@ -70,8 +70,8 @@ namespace RadarScreenNS{
 //            if (plugin) plugin->LogEvent("OnRefresh start");
 
             // Top left inset rectangle
-            int normalInsetWidth = 576;
-            int normalInsetHeight = 324;
+            int normalInsetWidth = normalInsetWidth1 * getScaleFactor();
+            int normalInsetHeight = normalInsetHeight1 * getScaleFactor();
             int minimisedInsetWidth = 100;
             int minimisedInsetHeight = 30; 
             
@@ -369,6 +369,11 @@ namespace RadarScreenNS{
         }
     }
 
+    void RadarScreen::SetScaleFactor(int newScaleFactor) {
+        std::lock_guard<std::mutex> lock(scaleFactorMutex);
+        scaleFactor = newScaleFactor;
+    }
+
     InsetSMRNS::ViewCoordinates RadarScreen::getInsetViewArea() {
         std::lock_guard<std::mutex> lock(insetViewAreaMutex);
         InsetSMRNS::ViewCoordinates snapshot = insetViewArea;
@@ -383,5 +388,11 @@ namespace RadarScreenNS{
     bool RadarScreen::isInsetSMRMinimised() {
         std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
         return insetSMRMinimised;
+    }
+
+    int RadarScreen::getScaleFactor() {
+        std::lock_guard<std::mutex> lock(scaleFactorMutex);
+        int snapshot = scaleFactor;
+        return snapshot;
     }
 }

@@ -155,7 +155,7 @@ namespace InsetSMRNS
         if (UpperCommand.find(".INSETSMR") != std::string::npos) {
             // Handle .INSETSMR AIRPORT <ICAO>
             if (UpperCommand.find(".INSETSMR AIRPORT ") != std::string::npos) {
-                std::string AirportRequested = std::string(UpperCommand).substr(18); // Length of ".INSETSMR AIRPORT "
+                std::string AirportRequested = std::string(UpperCommand).substr(18); // 18 is length of ".INSETSMR AIRPORT "
                 if (AirportRequested.length() != 4) {
                     DisplayMessage("Please ensure the requested airport is a 4-letter ICAO code", "Unable to change InsetSMR airport");
                     return true; // Command handled
@@ -197,9 +197,23 @@ namespace InsetSMRNS
                 }
                 return true; // Command handled
             }
+
+            // Hangle .INSETSMR SIZE <SCALE>
+            else if (UpperCommand.find(".INSETSMR SIZE ") != std::string::npos) {
+                int ScaleFactor = std::stoi(std::string(UpperCommand).substr(15).c_str()); // 15 is length of ".INSETSMR AIRPORT "
+                if (ScaleFactor < 1 || ScaleFactor > 9) {
+                    DisplayMessage("Please ensure the size is an integar between 1 and 9", "Unable to change size");
+                    return true; // Command handled
+                }
+
+                // Change the size
+                radarScreen->SetScaleFactor(ScaleFactor);
+                DisplayMessage(std::to_string(ScaleFactor), "Set size to");
+                return true; // Command handled
+            }
           
             // Unknown .INSETSMR command
-            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
+            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Size <integar>\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
                            "InsetSMR Command Error");
 
             return true; // Command handled
