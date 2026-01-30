@@ -144,79 +144,71 @@ namespace SectorFileLoadNS {
             plugin->LogEvent(std::string("LoadSectorFile: RelevantRegionNames size=") + std::to_string(activeAirport.RelevantRegionNames.size()));
         }
 
-        // if (plugin) {
-        //     plugin->DisplayMessage(std::string("Loading sector file for airport") + activeAirport.ICAO, "Debug");
-        // }
-        // 
-        // if (plugin) {
-        //     plugin->SelectActiveSectorfile();
-        //     for(auto element = plugin->SectorFileElementSelectFirst(EuroScopePlugIn::SECTOR_ELEMENT_GEO);
-        //         element.IsValid();
-        //         element = plugin->SectorFileElementSelectNext(element, EuroScopePlugIn::SECTOR_ELEMENT_GEO)) {
-        //             plugin->LogEvent((std::string("Looking at GEO element ") + element.GetName()).c_str());
-        //     }
-        // }
-        // 
-        // if (plugin) {
-        //     plugin->DisplayMessage("Moving into old logic");
-        // }
+        // Find the path to the UK sector file
+        std::string sectorFileDirPath = "UK/Data/Sector";
+        std::filesystem::path SectorFilePath;
+        for (const auto & entry : std::filesystem::directory_iterator(sectorFileDirPath)) {
+            std::string fileName = entry.path().string().substr(entry.path().string().find_last_of("/\\") + 1);
+            std::string fileExtention = fileName.substr(fileName.find_last_of("."));
+            if(fileExtention == ".sct" && fileName.find("UK") != std::string::npos) {
+                SectorFilePath = entry.path().string();
+                // NOTE: Don't continue as we want to use the last (most recent) relevant sector file in the folder
+            }
+        }
 
-            // TODO: Make sector file path configurable
-            std::filesystem::path SectorFilePath = "UK/Data/Sector/UK_2026_01.sct";
-
-            // Retry loop to handle transient locks (antivirus, OneDrive sync, other process)
-            const int maxAttempts = 6;
-            const auto delay = std::chrono::milliseconds(250);
-            std::ifstream sectorFileStream;
-            bool opened = false;
-            for (int attempt = 1; attempt <= maxAttempts; ++attempt) {
-                if (plugin) plugin->LogEvent(std::string("LoadSectorFile: open attempt ") + std::to_string(attempt));
-                try {
-                    if (!std::filesystem::exists(SectorFilePath)) {
-                        if (plugin) plugin->DisplayMessage(SectorFilePath.string().c_str(), "Sector file not found at");
-                        return;
-                    }
-                    if (plugin) plugin->LogEvent(std::string("LoadSectorFile: exists returned true for ") + SectorFilePath.string());
-                } catch (const std::filesystem::filesystem_error &fex) {
-                    if (plugin) plugin->LogEvent(std::string("Attempt ") + std::to_string(attempt) + ": filesystem::exists threw: " + fex.what());
-                    if (attempt < maxAttempts) std::this_thread::sleep_for(delay);
-                    continue;
+        // Retry loop to handle transient locks (antivirus, OneDrive sync, other process)
+        const int maxAttempts = 6;
+        const auto delay = std::chrono::milliseconds(250);
+        std::ifstream sectorFileStream;
+        bool opened = false;
+        for (int attempt = 1; attempt <= maxAttempts; ++attempt) {
+            if (plugin) plugin->LogEvent(std::string("LoadSectorFile: open attempt ") + std::to_string(attempt));
+            try {
+                if (!std::filesystem::exists(SectorFilePath)) {
+                    if (plugin) plugin->DisplayMessage(SectorFilePath.string().c_str(), "Sector file not found at");
+                    return;
                 }
-
-                // Try to open with ifstream
-                sectorFileStream.open(SectorFilePath, std::ios::in);
-                if (sectorFileStream.is_open()) {
-                    opened = true;
-                    break;
-                }
-                else {
-                    int err = errno;
-                    if (plugin) plugin->LogEvent(std::string("Attempt ") + std::to_string(attempt) + ": ifstream open failed, errno=" + std::to_string(err) + ", strerror=" + std::string(std::strerror(err)));
-                }
-
-                // As a fallback, try CreateFile with sharing to probe file availability
-                HANDLE h = CreateFileA(SectorFilePath.string().c_str(), GENERIC_READ,
-                                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                       NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-                if (h != INVALID_HANDLE_VALUE) {
-                    CloseHandle(h);
-                    // Try opening stream again
-                    sectorFileStream.open(SectorFilePath, std::ios::in);
-                    if (sectorFileStream.is_open()) { opened = true; break; }
-                } else {
-                    DWORD err = GetLastError();
-                    if (plugin) plugin->LogEvent(std::string("CreateFile attempt ") + std::to_string(attempt) + " failed with GetLastError=" + std::to_string(err));
-                }
-
+                if (plugin) plugin->LogEvent(std::string("LoadSectorFile: exists returned true for ") + SectorFilePath.string());
+            } catch (const std::filesystem::filesystem_error &fex) {
+                if (plugin) plugin->LogEvent(std::string("Attempt ") + std::to_string(attempt) + ": filesystem::exists threw: " + fex.what());
                 if (attempt < maxAttempts) std::this_thread::sleep_for(delay);
+                continue;
             }
 
-            if (!opened) {
-                if (plugin) plugin->DisplayMessage("Failed to open sector file after retries.", "Error");
-                if (plugin) plugin->LogEvent(std::string("Failed to open sector file: ") + SectorFilePath.string());
-                return;
+            // Try to open with ifstream
+            sectorFileStream.open(SectorFilePath, std::ios::in);
+            if (sectorFileStream.is_open()) {
+                opened = true;
+                break;
             }
-            if (plugin) plugin->DisplayMessage(SectorFilePath.string().c_str(), "Loading Sector file from");
+            else {
+                int err = errno;
+                if (plugin) plugin->LogEvent(std::string("Attempt ") + std::to_string(attempt) + ": ifstream open failed, errno=" + std::to_string(err) + ", strerror=" + std::string(std::strerror(err)));
+            }
+
+            // As a fallback, try CreateFile with sharing to probe file availability
+            HANDLE h = CreateFileA(SectorFilePath.string().c_str(), GENERIC_READ,
+                                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                    NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            if (h != INVALID_HANDLE_VALUE) {
+                CloseHandle(h);
+                // Try opening stream again
+                sectorFileStream.open(SectorFilePath, std::ios::in);
+                if (sectorFileStream.is_open()) { opened = true; break; }
+            } else {
+                DWORD err = GetLastError();
+                if (plugin) plugin->LogEvent(std::string("CreateFile attempt ") + std::to_string(attempt) + " failed with GetLastError=" + std::to_string(err));
+            }
+
+            if (attempt < maxAttempts) std::this_thread::sleep_for(delay);
+        }
+
+        if (!opened) {
+            if (plugin) plugin->DisplayMessage("Failed to open sector file after retries.", "Error");
+            if (plugin) plugin->LogEvent(std::string("Failed to open sector file: ") + SectorFilePath.string());
+            return;
+        }
+        if (plugin) plugin->DisplayMessage(SectorFilePath.string().c_str(), "Loading Sector file from");
 
         // Sector file loading logic
         std::string line = "";
