@@ -137,10 +137,10 @@ namespace SectorFileLoadNS {
         if (plugin) {
             plugin->LogEvent(std::string("LoadSectorFile: activeAirport=") + activeAirport.ICAO);
             plugin->LogEvent(std::string("LoadSectorFile: RelevantGeoNames size=") + std::to_string(activeAirport.RelevantGeoNames.size()));
-            plugin->LogEvent("LoadSectorFile: RelevantGeoNames are:");
-            for (std::string relevantGeo : activeAirport.RelevantGeoNames) {
-                plugin->LogEvent(relevantGeo);
-            }
+            // plugin->LogEvent("LoadSectorFile: RelevantGeoNames are:");
+            // for (std::string relevantGeo : activeAirport.RelevantGeoNames) {
+            //     plugin->LogEvent(relevantGeo);
+            // }
             plugin->LogEvent(std::string("LoadSectorFile: RelevantRegionNames size=") + std::to_string(activeAirport.RelevantRegionNames.size()));
         }
 
@@ -265,7 +265,7 @@ namespace SectorFileLoadNS {
                 // New GEO definition
                 if (line.find(startOfNewGeoSectionTest) != std::string::npos) {
                     loadThisGeo = false; // Assume not going to read it ntil proven otherwise
-                    if (plugin) plugin->LogEvent("Looking at " + line);
+//                    if (plugin) plugin->LogEvent("Looking at " + line);
                     // Decide whether to load this geo based on activeAirport.RelevantGeoNames
                     for (const std::string &relevantGeoName : activeAirport.RelevantGeoNames) {
 //                        if (plugin) plugin->LogEvent("Checking for " + relevantGeoName);
@@ -279,9 +279,9 @@ namespace SectorFileLoadNS {
                             for (const std::string& nonWhitespace : splitSanitisedLine) {
                                 if (nonWhitespace.size() > 0) {
                                     loadThisGeo = false;
-                                    if (plugin) plugin->LogEvent("Ignoring: " + line + " GEO as something other than " + relevantGeoName);
+//                                    if (plugin) plugin->LogEvent("Ignoring: " + line + " GEO as something other than " + relevantGeoName);
                                     for (char nonWhitespaceChar : nonWhitespace) {
-                                        if (plugin) plugin->LogEvent("Extra Character: \"" + std::string(1, nonWhitespaceChar) + "\" found");
+//                                        if (plugin) plugin->LogEvent("Extra Character: \"" + std::string(1, nonWhitespaceChar) + "\" found");
                                     }
                                 }
                             }
@@ -327,7 +327,7 @@ namespace SectorFileLoadNS {
                 if (!splitLine.empty() && splitLine[0].find("REGIONNAME") != std::string::npos) {
                     // Save the previous region before starting a new one
                     if (loadingRegion.name != "") {
-                        if (plugin) plugin->LogEvent(std::string("Pushing region ") + loadingRegion.name + ", points=" + std::to_string(loadingRegion.boundaryCoords.size()));
+//                        if (plugin) plugin->LogEvent(std::string("Pushing region ") + loadingRegion.name + ", points=" + std::to_string(loadingRegion.boundaryCoords.size()));
                         regions.push_back(loadingRegion);
                         loadingRegion = SectorFileLoad::Region(); // Reset loadingRegion
                     }
@@ -402,21 +402,21 @@ namespace SectorFileLoadNS {
 
         // If we finished file while building a region, save it now
         if (loadingRegion.name != "") {
-            if (plugin) plugin->LogEvent(std::string("Pushing final region ") + loadingRegion.name + ", points=" + std::to_string(loadingRegion.boundaryCoords.size()));
+//            if (plugin) plugin->LogEvent(std::string("Pushing final region ") + loadingRegion.name + ", points=" + std::to_string(loadingRegion.boundaryCoords.size()));
             regions.push_back(loadingRegion);
             loadingRegion = SectorFileLoad::Region();
         }
 
         sectorFileStream.close();
 
-        // Debugging Logs
-        if (plugin) {
-            plugin->LogEvent(std::string("LoadSectorFile: geoLines=") + std::to_string(geoLines.size()) + ", regions=" + std::to_string(regions.size()) + ", colours=" + std::to_string(colourCodes.size()));
-            // Log first region names for debugging
-            for (size_t i = 0; i < regions.size() && i < 5; ++i) {
-                plugin->LogEvent(std::string("Region[") + std::to_string(i) + "]=" + regions[i].name);
-            }
-        }
+        // // Debugging Logs
+        // if (plugin) {
+        //     plugin->LogEvent(std::string("LoadSectorFile: geoLines=") + std::to_string(geoLines.size()) + ", regions=" + std::to_string(regions.size()) + ", colours=" + std::to_string(colourCodes.size()));
+        //     // Log first region names for debugging
+        //     for (size_t i = 0; i < regions.size() && i < 5; ++i) {
+        //         plugin->LogEvent(std::string("Region[") + std::to_string(i) + "]=" + regions[i].name);
+        //     }
+        // }
 
         plugin->DisplayMessage("Sector file loaded", "Success");
         }

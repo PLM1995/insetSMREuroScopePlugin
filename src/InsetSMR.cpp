@@ -224,9 +224,9 @@ namespace InsetSMRNS
         
     InsetSMR::Airport InsetSMR::getActiveAirport() {
         try {
-            if (this) {
-                try { LogEvent("getActiveAirport: entry"); } catch(...) {}
-            }
+            // if (this) {
+            //     try { LogEvent("getActiveAirport: entry"); } catch(...) {}
+            // }
 
             // Copy the active airport under lock, but avoid performing filesystem I/O
             // (LogEvent) while holding the ActiveAirportMutex to prevent IO-related
@@ -253,7 +253,7 @@ namespace InsetSMRNS
 
             try {
                 LogEvent(std::string("getActiveAirport: copying activeAirport.ICAO=") + snapshot.ICAO);
-                LogEvent(std::string("getActiveAirport: copy done, geoNames=") + std::to_string(snapshot.RelevantGeoNames.size()));
+//                LogEvent(std::string("getActiveAirport: copy done, geoNames=") + std::to_string(snapshot.RelevantGeoNames.size()));
             } catch(...) {
                 // LogEvent is already hardened, but swallow any logging errors here too.
             }
@@ -369,7 +369,7 @@ namespace InsetSMRNS
             if (sectorFileLoader) {
                 LogEvent("Calling SectorFileLoad::LoadSectorFile");
                 sectorFileLoader->LoadSectorFile();
-                LogEvent("Returned from SectorFileLoad::LoadSectorFile");
+//                LogEvent("Returned from SectorFileLoad::LoadSectorFile");
             }
         } catch (const std::exception &ex) {
             LogEvent(std::string("Exception loading sector file: ") + ex.what());
