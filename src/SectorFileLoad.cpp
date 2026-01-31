@@ -115,12 +115,12 @@ namespace SectorFileLoadNS {
     void SectorFileLoad::LoadSectorFile() {
         try {
             if (plugin) plugin->LogEvent("LoadSectorFile: entry");
-            InsetSMRNS::InsetSMR::Airport activeAirport;
+            InsetSMRNS::InsetSMR::View activeView;
 
             if (plugin) {
                 try {
-                    activeAirport = plugin->getActiveAirport();
-                    plugin->LogEvent(std::string("LoadSectorFile: got activeAirport=") + activeAirport.ICAO);
+                    activeView = plugin->getActiveView();
+                    plugin->LogEvent(std::string("LoadSectorFile: got activeAirport=") + activeView.ICAO);
                 } catch (const std::exception &ex) {
                     plugin->LogEvent(std::string("LoadSectorFile: getActiveAirport threw: ") + ex.what());
                     return;
@@ -135,13 +135,13 @@ namespace SectorFileLoadNS {
         colourCodes.clear();
 
         if (plugin) {
-            plugin->LogEvent(std::string("LoadSectorFile: activeAirport=") + activeAirport.ICAO);
-            plugin->LogEvent(std::string("LoadSectorFile: RelevantGeoNames size=") + std::to_string(activeAirport.RelevantGeoNames.size()));
+            plugin->LogEvent(std::string("LoadSectorFile: activeAirport=") + activeView.ICAO);
+            plugin->LogEvent(std::string("LoadSectorFile: RelevantGeoNames size=") + std::to_string(activeView.RelevantGeoNames.size()));
             // plugin->LogEvent("LoadSectorFile: RelevantGeoNames are:");
             // for (std::string relevantGeo : activeAirport.RelevantGeoNames) {
             //     plugin->LogEvent(relevantGeo);
             // }
-            plugin->LogEvent(std::string("LoadSectorFile: RelevantRegionNames size=") + std::to_string(activeAirport.RelevantRegionNames.size()));
+            plugin->LogEvent(std::string("LoadSectorFile: RelevantRegionNames size=") + std::to_string(activeView.RelevantRegionNames.size()));
         }
 
         // Find the path to the UK sector file
@@ -259,7 +259,7 @@ namespace SectorFileLoadNS {
                     loadThisGeo = false; // Assume not going to read it ntil proven otherwise
 //                    if (plugin) plugin->LogEvent("Looking at " + line);
                     // Decide whether to load this geo based on activeAirport.RelevantGeoNames
-                    for (const std::string &relevantGeoName : activeAirport.RelevantGeoNames) {
+                    for (const std::string &relevantGeoName : activeView.RelevantGeoNames) {
 //                        if (plugin) plugin->LogEvent("Checking for " + relevantGeoName);
                         // Logic santises to check, e.g. "EGPF Glasgow FAVA" ignored  if"EGPF Glasgow" searched
                         if (line.find(relevantGeoName) != std::string::npos) {
@@ -327,7 +327,7 @@ namespace SectorFileLoadNS {
 
                     // Decide whether to load this region based on activeAirport.RelevantRegionNames
                     loadThisRegion = false;
-                    for (const std::string &relevantRegionName : activeAirport.RelevantRegionNames) {
+                    for (const std::string &relevantRegionName : activeView.RelevantRegionNames) {
                         if (relevantRegionName == currentRegionName) {
                             loadThisRegion = true;
                             break;
