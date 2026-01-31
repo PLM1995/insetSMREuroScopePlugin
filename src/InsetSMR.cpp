@@ -247,7 +247,7 @@ namespace InsetSMRNS
             }
           
             // Unknown .INSETSMR command
-            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".INSETSMR HOLDING <ICAO> <RUNWAY>\", \".InsetSMR Size <integar>\", \".InsetSMR Dataline\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
+            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Holding <ICAO> <RUNWAY>\", \".InsetSMR Size <SCALE>\", \".InsetSMR Dataline\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
                            "InsetSMR Command Error");
 
             return true; // Command handled
