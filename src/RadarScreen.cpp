@@ -209,6 +209,8 @@ namespace RadarScreenNS{
                 double acLon = rt.lon;
                 double acLat = rt.lat;
                 std::string acCallsign = rt.callsign;
+                std::string acType = rt.acType;
+                std::string SID = rt.SID;
 
                 // Check if within inset bounds
                 if (acLon < viewArea.minViewLon || acLon > viewArea.maxViewLon || acLat < viewArea.minViewLat || acLat > viewArea.maxViewLat) {
@@ -254,6 +256,12 @@ namespace RadarScreenNS{
                 SetTextColor(hDC, RGB(255, 255, 0)); // Yellowish color
                 SetBkMode(hDC, TRANSPARENT); // Transparent background
                 TextOutA(hDC, acPt.x + 5, acPt.y - 8, acCallsign.c_str(), static_cast<int>(acCallsign.length()));
+
+                // Draw AC Type and SID below callsign if needed
+                if (isDataLineShown()) {
+                    std::string dataLine = acType + " " + SID;
+                    TextOutA(hDC, acPt.x + 5, acPt.y + 6, dataLine.c_str(), static_cast<int>(dataLine.length()));
+                }
 
                 // Cleanup
                 SelectObject(hDC, oldBrush);
@@ -374,6 +382,12 @@ namespace RadarScreenNS{
         scaleFactor = newScaleFactor;
     }
 
+    bool RadarScreen::ToggleDataLine() {
+        std::lock_guard<std::mutex> lock (showDataLineMutex);
+        showDataLine = !showDataLine;
+        return showDataLine;
+    }
+
     InsetSMRNS::ViewCoordinates RadarScreen::getInsetViewArea() {
         std::lock_guard<std::mutex> lock(insetViewAreaMutex);
         InsetSMRNS::ViewCoordinates snapshot = insetViewArea;
@@ -388,6 +402,11 @@ namespace RadarScreenNS{
     bool RadarScreen::isInsetSMRMinimised() {
         std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
         return insetSMRMinimised;
+    }
+
+    bool RadarScreen::isDataLineShown() {
+        std::lock_guard<std::mutex> lock (showDataLineMutex);
+        return showDataLine;
     }
 
     int RadarScreen::getScaleFactor() {

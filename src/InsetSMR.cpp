@@ -101,6 +101,8 @@ namespace InsetSMRNS
         RadarTargetSnapshot s;
         s.valid = true;
         s.callsign = callsign;
+        s.acType = RadarTarget.GetCorrelatedFlightPlan().GetFlightPlanData().GetAircraftFPType();
+        s.SID = RadarTarget.GetCorrelatedFlightPlan().GetFlightPlanData().GetSidName();
         s.lon = RadarTarget.GetPosition().GetPosition().m_Longitude;
         s.lat = RadarTarget.GetPosition().GetPosition().m_Latitude;
 
@@ -144,8 +146,11 @@ namespace InsetSMRNS
         // Create a new RadarScreen for EuroScope to own.
         radarScreen = new RadarScreenNS::RadarScreen(this);
 
-        enum VIEWMODE VIEWMODE = AIRPORT;
-        setActiveView("EGPF", VIEWMODE);
+
+        enum VIEWMODE defaultVIEWMODE = HOLDINGAREA;
+        std::string defaultRunway = "27L";
+        std::string defaultAirport = "EGLL";
+        setActiveView(defaultAirport, defaultVIEWMODE, defaultRunway);
 
         return radarScreen;
     }
@@ -216,6 +221,17 @@ namespace InsetSMRNS
                 return true; // Command handled
             }
 
+            // Handle .INSETSMR DATALINE
+            else if (UpperCommand.find(".INSETSMR DATALINE") != std::string::npos) {
+                if (radarScreen->ToggleDataLine()) {
+                    DisplayMessage("Enabled", "Toggled dataline");
+                }
+                else {
+                    DisplayMessage("Disabled", "Toggled dataline");
+                }
+                return true; // Command handled
+            }
+
             // Hangle .INSETSMR SIZE <SCALE>
             else if (UpperCommand.find(".INSETSMR SIZE ") != std::string::npos) {
                 int ScaleFactor = std::stoi(std::string(UpperCommand).substr(15).c_str()); // 15 is length of ".INSETSMR AIRPORT "
@@ -231,7 +247,7 @@ namespace InsetSMRNS
             }
           
             // Unknown .INSETSMR command
-            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".INSETSMR HOLDING <ICAO> <RUNWAY>\", \".InsetSMR Size <integar>\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
+            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".INSETSMR HOLDING <ICAO> <RUNWAY>\", \".InsetSMR Size <integar>\", \".InsetSMR Dataline\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
                            "InsetSMR Command Error");
 
             return true; // Command handled
