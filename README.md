@@ -1,5 +1,7 @@
 # Inset SMR EuroScope Plugin
 
+Note: This plugin is still in its early stages, and is provided with no warrenty. For any bugs observed, please raise an Issue.
+
 This plugin allows the display of a miniature SMR window on other radar views within EuroScope. It is designed for use with the UK Controller Pack by default. The plugin .dll and config .json files should be placed in the folder "%APPDATA%/EuroScope/UK/Data/Plugin/InsetSMR/".
 
 Once loaded, ensure the plugin can draw on the display type you need, such as the "SMR Radar Display", "Standards ES Radar Screen" or both.
