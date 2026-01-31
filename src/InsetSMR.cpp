@@ -9,7 +9,6 @@
 #include "RadarScreen.h"
 #include "SectorFileLoad.h"
 #include "Version.h"
-
 #include <fstream>
 #include <filesystem>
 #include "json.hpp"
@@ -32,7 +31,8 @@ namespace InsetSMRNS
             sectorFileLoader = new SectorFileLoadNS::SectorFileLoad(this);
 
             // Initialise Active Airport (default invalid)
-            setActiveAirport("ZZZZ"); // TODO: Consider best default.
+            enum VIEWMODE VIEWMODE = AIRPORT;
+            setActiveView("ZZZZ", VIEWMODE); // TODO: Consider best default.
         }
         catch (const std::exception &ex) {
             try { LogEvent(std::string("Exception in InsetSMR ctor: ") + ex.what()); } catch(...) {}
@@ -144,7 +144,8 @@ namespace InsetSMRNS
         // Create a new RadarScreen for EuroScope to own.
         radarScreen = new RadarScreenNS::RadarScreen(this);
 
-        setActiveAirport("EGPF");
+        enum VIEWMODE VIEWMODE = AIRPORT;
+        setActiveView("EGPF", VIEWMODE);
 
         return radarScreen;
     }
@@ -161,11 +162,28 @@ namespace InsetSMRNS
                     return true; // Command handled
                 }
 
-                // Change the inset airport
-                if (!setActiveAirport(AirportRequested)) {
+                // Change the inset view
+                enum VIEWMODE VIEWMODE = AIRPORT;
+                if (!setActiveView(AirportRequested, VIEWMODE)) {
                     DisplayMessage(AirportRequested.c_str(), "Error setting airport to");
                 } else {
                     DisplayMessage(AirportRequested.c_str(), "Set active airport to");
+                }
+                return true; // Command handled
+            }
+
+            // Handle .INSETSMR HOLDING <ICAO> <RUNWAY>
+            else if (UpperCommand.find(".INSETSMR HOLDING ") != std::string::npos) {
+                std::string AirportRunwayRequested = std::string(UpperCommand).substr(18); // 18 is length of ".INSETSMR HOLDING "
+                std::string ICAORequested = AirportRunwayRequested.substr(0, 4);
+                std::string RunwayRequest = AirportRunwayRequested.substr(5); // 5 if length og "ICAO "
+
+                // Change the inset view
+                enum VIEWMODE VIEWMODE = HOLDINGAREA;
+                if (!setActiveView(ICAORequested, VIEWMODE, RunwayRequest)) {
+                    DisplayMessage("not managed to change to holding area view specified", "Error");
+                } else {
+                    DisplayMessage(ICAORequested.c_str(), "Set active holding area view for");
                 }
                 return true; // Command handled
             }
@@ -213,7 +231,7 @@ namespace InsetSMRNS
             }
           
             // Unknown .INSETSMR command
-            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Size <integar>\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
+            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".INSETSMR HOLDING <ICAO> <RUNWAY>\", \".InsetSMR Size <integar>\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
                            "InsetSMR Command Error");
 
             return true; // Command handled
@@ -236,38 +254,38 @@ namespace InsetSMRNS
         EuroScopePlugIn::CPlugIn::SetASELAircraft (FlightPlan);    // NOTE: Using a RadarTarget seems not to work
     }
         
-    InsetSMR::Airport InsetSMR::getActiveAirport() {
+    InsetSMR::View InsetSMR::getActiveView() {
         try {
             // if (this) {
-            //     try { LogEvent("getActiveAirport: entry"); } catch(...) {}
+            //     try { LogEvent("getActiveView: entry"); } catch(...) {}
             // }
 
-            // Copy the active airport under lock, but avoid performing filesystem I/O
-            // (LogEvent) while holding the ActiveAirportMutex to prevent IO-related
+            // Copy the active view under lock, but avoid performing filesystem I/O
+            // (LogEvent) while holding the ActiveViewMutex to prevent IO-related
             // exceptions or blocking from propagating into this function.
-            Airport snapshot;
+            View snapshot;
             try {
-                std::lock_guard<std::mutex> lock(ActiveAirportMutex);
-                snapshot = activeAirport; // <-- narrow try/catch around the copy
+                std::lock_guard<std::mutex> lock(ActiveViewMutex);
+                snapshot = activeView; // <-- narrow try/catch around the copy
             } catch (const std::exception &ex) {
                 // Use OutputDebugStringA for diagnostics because filesystem logging
                 // may be the cause of failures; OutputDebugStringA is low-overhead
                 // and does not rely on disk I/O.
                 try {
-                    std::string msg = "getActiveAirport: exception during copy: ";
+                    std::string msg = "getActiveView: exception during copy: ";
                     msg += ex.what();
                     msg += "\n";
                     OutputDebugStringA(msg.c_str());
                 } catch(...) {}
-                return Airport();
+                return View();
             } catch (...) {
-                try { OutputDebugStringA("getActiveAirport: unknown exception during copy\n"); } catch(...) {}
-                return Airport();
+                try { OutputDebugStringA("getActiveView: unknown exception during copy\n"); } catch(...) {}
+                return View();
             }
 
             try {
-                LogEvent(std::string("getActiveAirport: copying activeAirport.ICAO=") + snapshot.ICAO);
-//                LogEvent(std::string("getActiveAirport: copy done, geoNames=") + std::to_string(snapshot.RelevantGeoNames.size()));
+                LogEvent(std::string("getActiveView: copying activeAirport.ICAO=") + snapshot.ICAO);
+//                LogEvent(std::string("getActiveView: copy done, geoNames=") + std::to_string(snapshot.RelevantGeoNames.size()));
             } catch(...) {
                 // LogEvent is already hardened, but swallow any logging errors here too.
             }
@@ -275,22 +293,18 @@ namespace InsetSMRNS
             return snapshot;
         } catch (const std::exception &ex) {
             try { LogEvent(std::string("getActiveAirport exception: ") + ex.what()); } catch(...) {}
-            return Airport();
+            return View();
         } catch (...) {
             try { LogEvent("getActiveAirport unknown exception"); } catch(...) {}
-            return Airport();
+            return View();
         }
     }
 
-    bool InsetSMR::setActiveAirport(std::string ICAO) {
-//        LogEvent("setActiveAiport function called for " + ICAO);
-        // Check if this is already the active airport
-        if (getActiveAirport().ICAO == ICAO) {
-            DisplayMessage("Airport already set as active", "Unable");
-            return false;
-        }
+    bool InsetSMR::setActiveView(std::string ICAO, enum VIEWMODE viewMode, std::string viewRunway) {
+        viewRunway = _strupr(_strdup(viewRunway.c_str()));
+        LogEvent("setActiveView function called for " + ICAO + " at runway " + viewRunway);
 
-        // TODO: Move this JSON Parsing block somewhere more sensible.
+        // TODO: Move this JSON Parsing block somewhere more sensible?
         // Look up needed Geo and Region names based on ICAO
         // Load config file
         std::filesystem::path ConfigFilePath = "UK/Data/Plugin/InsetSMR/Config.json";
@@ -320,8 +334,9 @@ namespace InsetSMRNS
         // Read data
         std::vector<std::string> RelevantGeoNames;
         std::vector<std::string> RelevantRegionNames;
-        ViewCoordinates SMRViewCoordinates{}; // zero-init to avoid uninitialized values
+        ViewCoordinates viewCoordinates{}; // zero-init to avoid uninitialized values
         bool AirportInJSON = false;
+        bool CoordinatesFound = false;
         for (const auto& airport : config) {
             // Only load the needed airport data
             if (!airport.contains(ICAO)) {
@@ -343,36 +358,60 @@ namespace InsetSMRNS
                         RelevantRegionNames.push_back(region);
                     }
                 }
-                // Extract SMR View
-                if (config_info.contains("SMR_COORDs")) {
+                // Extract Airport SMR View Coordinates
+                if (config_info.contains("SMR_COORDs") && viewMode == AIRPORT) {
                     const auto& coords = config_info["SMR_COORDs"];
                     if (coords.contains("minLon")) {
-                        SMRViewCoordinates.minViewLon = coords["minLon"].get<double>();
+                        viewCoordinates.minViewLon = coords["minLon"].get<double>();
                     }
                     if (coords.contains("maxLon")) {
-                        SMRViewCoordinates.maxViewLon = coords["maxLon"].get<double>();
+                        viewCoordinates.maxViewLon = coords["maxLon"].get<double>();
                     }
                     if (coords.contains("minLat")) {
-                        SMRViewCoordinates.minViewLat = coords["minLat"].get<double>();
+                        viewCoordinates.minViewLat = coords["minLat"].get<double>();
                     }
                     if (coords.contains("maxLat")) {
-                        SMRViewCoordinates.maxViewLat = coords["maxLat"].get<double>();
+                        viewCoordinates.maxViewLat = coords["maxLat"].get<double>();
+                    }
+                    CoordinatesFound = true;
+                }
+                // Extract Runway holding area Coordinates
+                if (config_info.contains("HOLDING_AREA_COORDS") && viewMode == HOLDINGAREA) {
+
+                    LogEvent("Looking at HOLDING AREA COORDS in JSON");
+
+                    const auto& runway = config_info["HOLDING_AREA_COORDS"];
+                    if (runway.contains(viewRunway)) {
+                        const auto& coords = runway[viewRunway];
+                        if (coords.contains("minLon")) {
+                            viewCoordinates.minViewLon = coords["minLon"].get<double>();
+                        }
+                        if (coords.contains("maxLon")) {
+                            viewCoordinates.maxViewLon = coords["maxLon"].get<double>();
+                        }
+                        if (coords.contains("minLat")) {
+                            viewCoordinates.minViewLat = coords["minLat"].get<double>();
+                        }
+                        if (coords.contains("maxLat")) {
+                            viewCoordinates.maxViewLat = coords["maxLat"].get<double>();
+                        }
+                        CoordinatesFound = true;
                     }
                 }
             }
         }
 
         // Failed to find data to use
-        if (!AirportInJSON) {
+        if (!AirportInJSON || !CoordinatesFound) {
             return false;
         }
 
-//        LogEvent("about to update the active airport to: " + ICAO);
+        LogEvent("about to update the active view for: " + ICAO);
 
         // Update the active airport (hold the lock only for the assignment)
         {
-            std::lock_guard<std::mutex> lock(ActiveAirportMutex);
-            activeAirport = { ICAO, RelevantGeoNames, RelevantRegionNames, SMRViewCoordinates };
+            std::lock_guard<std::mutex> lock(ActiveViewMutex);
+            activeView = { ICAO, RelevantGeoNames, RelevantRegionNames, viewCoordinates };
         }
 
         // Re-load the sector data (as the sector file loading is airport specific).
@@ -390,16 +429,16 @@ namespace InsetSMRNS
             // non-fatal: continue without crashing the plugin
         }
 
-//        LogEvent("activeAirport object has been updated");
+//        LogEvent("activeView object has been updated");
 
         // Set Radar View Inset Area appropriately (if radar screen exists)
-        // Obtain a snapshot of active airport to read SMR view coordinates safely
-        ViewCoordinates viewCoordinates = getActiveAirport().SMRViewCoordinates;
-//        LogEvent("viewCoordinates set from active airport");
+        // Obtain a snapshot of active view to read SMR view coordinates safely
+        viewCoordinates = getActiveView().viewCoordinates;
+//        LogEvent("viewCoordinates set from active bview");
         if (radarScreen) {
             radarScreen->SetInsetViewArea(viewCoordinates);
         }
 //        LogEvent("radarScreen should now be updated");
-        return true; // Successfully set active airport
+        return true; // Successfully set active view
     }
 }

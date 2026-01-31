@@ -17,7 +17,7 @@
 namespace InsetSMRNS {
     class InsetSMR;
 }
-#include "ViewCoordinates.h"
+#include "ViewData.h"
 
 namespace RadarScreenNS 
 {
