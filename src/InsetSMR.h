@@ -55,6 +55,8 @@ namespace InsetSMRNS
             double lon = 0.0;
             double lat = 0.0;
             std::string callsign;
+            std::string acType;
+            std::string SID;
             bool valid = false;
         };
 
