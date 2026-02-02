@@ -196,31 +196,33 @@ namespace RadarScreenNS{
                         DeleteObject(hPen);
                     }
 
-                    // Draw each LABEL
-                    auto labels = sectorFileLoader->getLabels();
-                    for (const auto &label : *labels) {
-                        // Calculate position
-                        double labelXNorm = (label.position.lon - viewArea.minViewLon) / lonRange;
-                        double labelYNorm = (label.position.lat - viewArea.minViewLat) / latRange;
-                        POINT labelPt = {
-                            insetTopLeftPosition.x + static_cast<LONG>(labelXNorm * normalInsetWidth),
-                            insetTopLeftPosition.y  + normalInsetHeight - static_cast<LONG>(labelYNorm * normalInsetHeight)
-                        };
+                    // Draw each LABEL if required
+                    if (areLabelsShown()) {
+                        auto labels = sectorFileLoader->getLabels();
+                        for (const auto &label : *labels) {
+                            // Calculate position
+                            double labelXNorm = (label.position.lon - viewArea.minViewLon) / lonRange;
+                            double labelYNorm = (label.position.lat - viewArea.minViewLat) / latRange;
+                            POINT labelPt = {
+                                insetTopLeftPosition.x + static_cast<LONG>(labelXNorm * normalInsetWidth),
+                                insetTopLeftPosition.y  + normalInsetHeight - static_cast<LONG>(labelYNorm * normalInsetHeight)
+                            };
 
-                        // Draw Label
-                        HFONT hFont = CreateFontA(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-                                          ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                          DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
-                                          "Arial");
-                        HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
-                        SetTextColor(hDC, RGB(label.colour.Red, label.colour.Blue, label.colour.Green));
-                        SetTextAlign(hDC, TA_CENTER); // Central alignment
-                        SetBkMode(hDC, TRANSPARENT); // Transparent background
-                        TextOutA(hDC, labelPt.x, labelPt.y, label.label.c_str(), static_cast<int>(label.label.length()));
+                            // Draw Label
+                            HFONT hFont = CreateFontA(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                                            ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                            DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+                                            "Arial");
+                            HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
+                            SetTextColor(hDC, RGB(label.colour.Red, label.colour.Blue, label.colour.Green));
+                            SetTextAlign(hDC, TA_CENTER); // Central alignment
+                            SetBkMode(hDC, TRANSPARENT); // Transparent background
+                            TextOutA(hDC, labelPt.x, labelPt.y, label.label.c_str(), static_cast<int>(label.label.length()));
 
-                        // Cleanup
-                        SelectObject(hDC, hOldFont);
-                        DeleteObject(hFont);
+                            // Cleanup
+                            SelectObject(hDC, hOldFont);
+                            DeleteObject(hFont);
+                        }
                     }
                 }
             }
@@ -420,6 +422,12 @@ namespace RadarScreenNS{
         return showDataLine;
     }
 
+    bool RadarScreen::ToggleLabels() {
+        std::lock_guard<std::mutex> lock (showLabelsMutex);
+        showLabels = !showLabels;
+        return showLabels;
+    }
+
     InsetSMRNS::ViewCoordinates RadarScreen::getInsetViewArea() {
         std::lock_guard<std::mutex> lock(insetViewAreaMutex);
         InsetSMRNS::ViewCoordinates snapshot = insetViewArea;
@@ -439,6 +447,11 @@ namespace RadarScreenNS{
     bool RadarScreen::isDataLineShown() {
         std::lock_guard<std::mutex> lock (showDataLineMutex);
         return showDataLine;
+    }
+
+    bool RadarScreen::areLabelsShown() {
+        std::lock_guard<std::mutex> lock (showLabelsMutex);
+        return showLabels;
     }
 
     int RadarScreen::getScaleFactor() {

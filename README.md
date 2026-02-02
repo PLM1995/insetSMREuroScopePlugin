@@ -12,5 +12,6 @@ The supported commands (accessed through the EuroScope command line) are as foll
 - ".InsetSMR Holding ICAO RUNWAY" Sets the the view to the runway holding area of the ICAO and RUNWAY specified, assuming these are set up in the config.json file properly.
 - ".InsetSMR Size SCALE" Sets the size of the inset SMR window, SCALE must be an integar from 1 (smallest) to 9 (biggest). The default is 3.
 - ".InsetSMR Dataline" Toggles the DataLine on the tag (showing the Aircraft Type and Assigned SID). Note this relies on the EuroScope SID selection, so the correct runway must be selected in EuroScope for the Data to be accurate.
+- ".InsetSMR Labels" Toggles the SMR labels (holding points and any extras specified in the config.json file).
 - ".InsetSMR Hide" Hides the inset SMR all together (equivalent to clicking the 'X' in the top-right of the window).
 - ".InsetSMR Show" Shows the inset SMR again once hidden.

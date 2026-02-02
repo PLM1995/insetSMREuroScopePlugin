@@ -39,6 +39,8 @@ namespace RadarScreenNS
 
         bool ToggleDataLine();
 
+        bool ToggleLabels();
+
     private:
         // Initially top-left corner
         // TODO: Allow saving/loading of position to/from the .asr
@@ -58,6 +60,10 @@ namespace RadarScreenNS
         bool showDataLine = true;
         std::mutex showDataLineMutex;
         bool isDataLineShown();
+
+        bool showLabels = true;
+        std::mutex showLabelsMutex;
+        bool areLabelsShown();
 
         InsetSMRNS::ViewCoordinates insetViewArea = { -4.453889, 55.861389, -4.416389, 55.880833 }; // Default is EGPF
         InsetSMRNS::ViewCoordinates getInsetViewArea();

@@ -232,6 +232,17 @@ namespace InsetSMRNS
                 return true; // Command handled
             }
 
+            // Handle .INSETSMR LABELS
+            else if (UpperCommand.find(".INSETSMR LABELS") != std::string::npos) {
+                if (radarScreen->ToggleLabels()) {
+                    DisplayMessage("Enabled", "Toggled labels");
+                }
+                else {
+                    DisplayMessage("Disabled", "Toggled labels");
+                }
+                return true; // Command handled
+            }
+
             // Hangle .INSETSMR SIZE <SCALE>
             else if (UpperCommand.find(".INSETSMR SIZE ") != std::string::npos) {
                 int ScaleFactor = std::stoi(std::string(UpperCommand).substr(15).c_str()); // 15 is length of ".INSETSMR AIRPORT "
@@ -247,7 +258,7 @@ namespace InsetSMRNS
             }
           
             // Unknown .INSETSMR command
-            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Holding <ICAO> <RUNWAY>\", \".InsetSMR Size <SCALE>\", \".InsetSMR Dataline\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
+            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Holding <ICAO> <RUNWAY>\", \".InsetSMR Size <SCALE>\", \".InsetSMR Dataline\", \".InsetSMR Labels\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
                            "InsetSMR Command Error");
 
             return true; // Command handled
