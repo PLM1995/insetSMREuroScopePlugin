@@ -10,6 +10,10 @@
                 "Heathrow",
                 "Heathrow Bealine+Maintenance"
             ],
+            "EXTRA_LABELS": [
+                "EGLL Links"
+            ],
+            "EXTRA_LABEL_COLOUR": "smrLLLabel",
             "SMR_COORDs":{
                 "minLon": -0.497728,
                 "maxLon": -0.413203,

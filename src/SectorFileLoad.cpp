@@ -32,15 +32,27 @@ namespace SectorFileLoadNS {
         return tokens;
     }
 
-    int SectorFileLoad::getColourCodeFromName(const std::string& colourName) {
-        for (SectorFileLoadNS::SectorFileLoad::ColourDefinition colourDef : SectorFileLoad::colourCodes) {
-            if (colourDef.name == colourName) {
-                return colourDef.code;
+    void SectorFileLoad::updateColour(Colour& colour) {
+        colour.Red = colour.code % 256;
+        colour.Green = ((colour.code - colour.Red) / 256) % 256;
+        colour.Blue = ((((colour.code - colour.Red) / 256) - colour.Green) / 256) % 256;
+    }
+
+    SectorFileLoad::Colour SectorFileLoad::getColourFromName(const std::string& colourName) {
+        for (SectorFileLoadNS::SectorFileLoad::Colour colour : SectorFileLoad::colours) {
+            if (colour.name == colourName) {
+                updateColour(colour);
+                return colour;
             }
         }
 
         plugin->DisplayMessage(colourName, "Unknown colour name");
-        return 0; // Default colour code if not found (black)
+         // Default colour if not found (black)
+        Colour defaultColour;
+        defaultColour.name = "black";
+        defaultColour.code = 0;
+        updateColour(defaultColour);
+        return defaultColour;
     }
 
     std::vector<SectorFileLoadNS::SectorFileLoad::GeoLine>* SectorFileLoad::getGeoLines() {
@@ -49,6 +61,10 @@ namespace SectorFileLoadNS {
 
     std::vector<SectorFileLoadNS::SectorFileLoad::Region>* SectorFileLoad::getRegions() {
         return &regions;
+    }
+
+    std::vector<SectorFileLoadNS::SectorFileLoad::Label>* SectorFileLoad::getLabels() {
+        return &labels;
     }
 
     double SectorFileLoad::dms_to_decimal(std::string coord_str) {
@@ -96,19 +112,18 @@ namespace SectorFileLoadNS {
         geoLine.startLon = v2;
         geoLine.endLat = v3;
         geoLine.endLon = v4;
-        geoLine.colourCode = getColourCodeFromName(geoLine.colourName);
-        geoLine.colourRed = geoLine.colourCode % 256;
-        geoLine.colourGreen = ((geoLine.colourCode - geoLine.colourRed) / 256) % 256;
-        geoLine.colourBlue = ((((geoLine.colourCode - geoLine.colourRed) / 256) - geoLine.colourGreen) / 256) % 256;
+        geoLine.colour = getColourFromName(geoLine.colour.name);
         return true;
     }
 
     void SectorFileLoad::updateRegionFromStrings(Region& region) {
 //        plugin->DisplayMessage(region.name, "Updating Region From String, Region name");
-        region.colourCode = getColourCodeFromName(region.colourName);
-        region.colourRed = region.colourCode % 256;
-        region.colourGreen = ((region.colourCode - region.colourRed) / 256) % 256;
-        region.colourBlue = ((((region.colourCode - region.colourRed) / 256) - region.colourGreen) / 256) % 256;
+        region.colour = getColourFromName(region.colour.name);
+        return;
+    }
+
+    void SectorFileLoad::updateLabelFromStrings(Label& label) {
+        label.colour = getColourFromName(label.colour.name);
         return;
     }
 
@@ -132,7 +147,7 @@ namespace SectorFileLoadNS {
         // Clear any previously loaded data to ensure consistent state
         geoLines.clear();
         regions.clear();
-        colourCodes.clear();
+        colours.clear();
 
         if (plugin) {
             plugin->LogEvent(std::string("LoadSectorFile: activeAirport=") + activeView.ICAO);
@@ -232,10 +247,11 @@ namespace SectorFileLoadNS {
             if (line.find("#define ") != std::string::npos) {
                 std::vector<std::string> splitLine = splitString(line, ' ');
                 if (splitLine.size() == 3) {
-                    SectorFileLoad::ColourDefinition colourDef;
-                    colourDef.name = splitLine[1];
-                    colourDef.code = std::stoi(splitLine[2]);
-                    colourCodes.push_back(colourDef);
+                    SectorFileLoad::Colour colour;
+                    colour.name = splitLine[1];
+                    colour.code = std::stoi(splitLine[2]);
+                    updateColour(colour);
+                    colours.push_back(colour);
                 }
                 continue;
             }
@@ -295,7 +311,7 @@ namespace SectorFileLoadNS {
                         geoLine.startLonString = splitLine[1];
                         geoLine.endLatString = splitLine[2];
                         geoLine.endLonString = splitLine[3];
-                        geoLine.colourName = splitLine[4];
+                        geoLine.colour.name = splitLine[4];
                         if (!updateGeoLineFromStrings(geoLine)) {
                             if (plugin) plugin->LogEvent(std::string("Skipping GEO line due to parse error: ") + line);
                             continue;
@@ -377,8 +393,8 @@ namespace SectorFileLoadNS {
                 if (loadingRegion.name == "") {
                     loadingRegion.name = currentRegionName;
                 }
-                if (!colourToken.empty() && loadingRegion.colourName.empty()) {
-                    loadingRegion.colourName = colourToken;
+                if (!colourToken.empty() && loadingRegion.colour.name.empty()) {
+                    loadingRegion.colour.name = colourToken;
                     updateRegionFromStrings(loadingRegion);
                 }
 

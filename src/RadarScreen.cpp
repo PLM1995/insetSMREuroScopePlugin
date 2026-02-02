@@ -123,11 +123,11 @@ namespace RadarScreenNS{
                         }
 
                         // Create and select a brush
-                        HBRUSH hBrush = CreateSolidBrush(RGB(region.colourRed, region.colourGreen, region.colourBlue));
+                        HBRUSH hBrush = CreateSolidBrush(RGB(region.colour.Red, region.colour.Green, region.colour.Blue));
                         HBRUSH oldBrush = (HBRUSH)SelectObject(hDC, hBrush);
 
                         // Create/select a pen
-                        HPEN hPen = CreatePen(PS_SOLID, 1, RGB(region.colourRed, region.colourGreen, region.colourBlue));
+                        HPEN hPen = CreatePen(PS_SOLID, 1, RGB(region.colour.Red, region.colour.Green, region.colour.Blue));
                         HPEN oldPen = (HPEN)SelectObject(hDC, hPen);
 
                         // Load region points
@@ -185,7 +185,7 @@ namespace RadarScreenNS{
                             insetTopLeftPosition.y  + normalInsetHeight - static_cast<LONG>(endYNorm * normalInsetHeight)
                         };
 
-                        HPEN hPen = CreatePen(PS_SOLID, 1, RGB(geoLine.colourRed, geoLine.colourGreen, geoLine.colourBlue));
+                        HPEN hPen = CreatePen(PS_SOLID, 1, RGB(geoLine.colour.Red, geoLine.colour.Green, geoLine.colour.Blue));
                         HPEN hOldPen = (HPEN)SelectObject(hDC, hPen);
 
                         MoveToEx(hDC, startPt.x, startPt.y, NULL);

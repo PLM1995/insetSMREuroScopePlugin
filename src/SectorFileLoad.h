@@ -17,6 +17,14 @@ namespace SectorFileLoadNS {
         SectorFileLoad(InsetSMRNS::InsetSMR* pluginInstance);
         virtual void LoadSectorFile();
 
+        struct Colour {
+            std::string name;
+            int code;
+            int Red;
+            int Green;
+            int Blue;
+        };
+
         struct GeoLine {
             std::string startLatString;
             std::string startLonString;
@@ -26,11 +34,7 @@ namespace SectorFileLoadNS {
             double startLon;
             double endLat;
             double endLon;
-            std::string colourName;
-            int colourCode;
-            int colourRed;
-            int colourGreen;
-            int colourBlue;
+            Colour colour;
         };
 
         struct coordinate {
@@ -41,40 +45,46 @@ namespace SectorFileLoadNS {
         struct Region {
             std::string name;
             std::vector<coordinate> boundaryCoords;
-            std::string colourName;
-            int colourCode;
-            int colourRed;
-            int colourGreen;
-            int colourBlue;
+            Colour colour;
+        };
+
+        struct Label {
+            std::string label;
+            std::string category;
+            coordinate position;
+            Colour colour;
         };
 
         std::vector<SectorFileLoadNS::SectorFileLoad::GeoLine>* getGeoLines();
 
         std::vector<SectorFileLoadNS::SectorFileLoad::Region>* getRegions();
 
+        std::vector<SectorFileLoadNS::SectorFileLoad::Label>* getLabels();
+
     private:
         InsetSMRNS::InsetSMR* plugin = nullptr;
         
         std::vector<std::string> splitString(const std::string& str, char delimiter);
         
-        struct ColourDefinition {
-            std::string name;
-            int code;
-        };
+        std::vector<SectorFileLoadNS::SectorFileLoad::Colour> colours;
         
-        std::vector<SectorFileLoadNS::SectorFileLoad::ColourDefinition> colourCodes;
-        
-        int getColourCodeFromName(const std::string& colourName);
+        void updateColour(Colour& colour);
+
+        Colour getColourFromName(const std::string& colourName);
         
         bool updateGeoLineFromStrings(GeoLine& geoLine);
         
         void updateRegionFromStrings(Region& region);
+
+        void updateLabelFromStrings(Label& label);
 
         bool try_dms_to_decimal(const std::string& coord_str, double &out);
 
         std::vector<SectorFileLoadNS::SectorFileLoad::GeoLine> geoLines;
 
         std::vector<Region> regions;
+
+        std::vector<Label> labels;
         
         double dms_to_decimal(std::string coord_str);
         
