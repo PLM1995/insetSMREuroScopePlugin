@@ -79,6 +79,11 @@ namespace RadarScreenNS{
         if(phase == EuroScopePlugIn::REFRESH_PHASE_AFTER_TAGS && isShowingInsetSMR()) {
 //            if (plugin) plugin->LogEvent("OnRefresh start");
 
+            // Nominal area is proportion of total radar area (to support 4K monitors, split screen instances, etc.)
+            RECT fullRadarArea = GetRadarArea();
+            int normalInsetWidth1 = int((fullRadarArea.right - fullRadarArea.left) / 10);
+            int normalInsetHeight1 = int(normalInsetWidth1 / 2);
+
             // Top left inset rectangle
             int normalInsetWidth = normalInsetWidth1 * getScaleFactor();
             int normalInsetHeight = normalInsetHeight1 * getScaleFactor();

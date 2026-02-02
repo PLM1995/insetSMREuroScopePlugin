@@ -69,8 +69,6 @@ namespace RadarScreenNS
         InsetSMRNS::ViewCoordinates getInsetViewArea();
         std::mutex insetViewAreaMutex;
 
-        const int normalInsetWidth1 = 192;
-        const int normalInsetHeight1 = 108;
         int scaleFactor = 3;
         std::mutex scaleFactorMutex;
         int getScaleFactor();
