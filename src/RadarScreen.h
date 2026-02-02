@@ -74,5 +74,22 @@ namespace RadarScreenNS
         int scaleFactor = 3;
         std::mutex scaleFactorMutex;
         int getScaleFactor();
+
+        // const Elements for drawing (to save runtime creation)
+        const HFONT buttonFont = CreateFontA(8, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+                                             ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                             DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+                                             "Arial");
+        const HFONT titleFont = CreateFontA(16, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+                                            ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                            DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+                                            "Arial");
+        const HFONT labelFont = CreateFontA(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                                            ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                            DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+                                            "Arial");
+        const HPEN buttonPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0)); // Black color
+        const int buttonSize = 10;
+        const char* title = "InsetSMR";
     };
 }

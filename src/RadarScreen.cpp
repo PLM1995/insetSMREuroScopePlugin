@@ -52,6 +52,16 @@ namespace RadarScreenNS{
         else if (Button == EuroScopePlugIn::BUTTON_LEFT && ObjectType == MINIMISEINSETSMRBUTTON) {
             ToggleInsetSMRMinimised();
         }
+    
+        // Click to toggle labels
+        else if (Button == EuroScopePlugIn::BUTTON_LEFT && ObjectType == TOGGLELABELSBUTTON) {
+            ToggleLabels();
+        }
+
+        // Click to toggle dataline
+        else if (Button == EuroScopePlugIn::BUTTON_LEFT && ObjectType == TOGGLEDATALINEBUTTON) {
+            ToggleDataLine();
+        }
     }
     
     void RadarScreen::OnMoveScreenObject ( int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released ) {
@@ -209,11 +219,7 @@ namespace RadarScreenNS{
                             };
 
                             // Draw Label
-                            HFONT hFont = CreateFontA(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-                                            ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                            DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
-                                            "Arial");
-                            HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
+                            HFONT hOldFont = (HFONT)SelectObject(hDC, labelFont);
                             SetTextColor(hDC, RGB(label.colour.Red, label.colour.Blue, label.colour.Green));
                             SetTextAlign(hDC, TA_CENTER); // Central alignment
                             SetBkMode(hDC, TRANSPARENT); // Transparent background
@@ -221,7 +227,6 @@ namespace RadarScreenNS{
 
                             // Cleanup
                             SelectObject(hDC, hOldFont);
-                            DeleteObject(hFont);
                         }
                     }
                 }
@@ -304,19 +309,15 @@ namespace RadarScreenNS{
                 SelectObject(hDC, oldPen);
                 DeleteObject(hPen);
             }
-
-//            if (plugin) plugin->LogEvent("OnRefresh end");
             
             // Used to draw buttons in top-right corner of inset
-            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0)); // Black color
-            HPEN oldPen = (HPEN)SelectObject(hDC, hPen);
-            int buttonSize = 10;
+            HPEN oldPen = (HPEN)SelectObject(hDC, buttonPen);
             
             // Draw 'Hide' button
             RECT hideButtonRect = {
-                insetRect.right,
-                insetRect.top,
                 insetRect.right - buttonSize,
+                insetRect.top,
+                insetRect.right,
                 insetRect.top + buttonSize
             };
             Rectangle(hDC, hideButtonRect.left, hideButtonRect.top, hideButtonRect.right, hideButtonRect.bottom);
@@ -326,25 +327,25 @@ namespace RadarScreenNS{
             LineTo(hDC, hideButtonRect.left, hideButtonRect.bottom);
             // Register clickable area for 'Hide' button
             RECT ClickableHideArea = {
-                hideButtonRect.right,
-                hideButtonRect.top,
                 hideButtonRect.left,
+                hideButtonRect.top,
+                hideButtonRect.right,
                 hideButtonRect.bottom
             };
             AddScreenObject(HIDEINSETSMRBUTTON, "HIDE_BUTTON", ClickableHideArea, false, "");
             
             // Draw 'Minimise' button
             RECT minimiseButtonRect = {
-                hideButtonRect.right,
+                hideButtonRect.left - buttonSize,
                 insetRect.top,
-                hideButtonRect.right - buttonSize,
+                hideButtonRect.left ,
                 insetRect.top + buttonSize
             };
             Rectangle(hDC, minimiseButtonRect.left, minimiseButtonRect.top, minimiseButtonRect.right, minimiseButtonRect.bottom);
             if (!isInsetSMRMinimised()) {
                 // Undescore symbol at bottom of button
-                MoveToEx(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3, NULL);
-                LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.bottom - 3);
+                MoveToEx(hDC, minimiseButtonRect.left + 3, minimiseButtonRect.bottom - 3, NULL);
+                LineTo(hDC, minimiseButtonRect.right - 3, minimiseButtonRect.bottom - 3);
             } else {
                 // Box symbol in button
                 MoveToEx(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3, NULL);
@@ -355,35 +356,79 @@ namespace RadarScreenNS{
             }
             // Register clickable area for 'Minimise' button
             RECT ClickableMinimiseArea = {
-                minimiseButtonRect.right,
-                minimiseButtonRect.top,
                 minimiseButtonRect.left,
+                minimiseButtonRect.top,
+                minimiseButtonRect.right,
                 minimiseButtonRect.bottom
             };
             AddScreenObject(MINIMISEINSETSMRBUTTON, "MINIMISE_BUTTON", ClickableMinimiseArea, false, "");
 
-            // Cleanup
-            SelectObject(hDC, oldPen);
-            DeleteObject(hPen);
+            // Draw Label Toggle Button
+            RECT toggleLabelsButtonRect = {
+                minimiseButtonRect.left - buttonSize,
+                insetRect.top,
+                minimiseButtonRect.left,
+                insetRect.top + buttonSize
+            };
+            Rectangle(hDC, toggleLabelsButtonRect.left, toggleLabelsButtonRect.top, toggleLabelsButtonRect.right, toggleLabelsButtonRect.bottom);
+            // Draw 'L' symbol
+            HFONT hOldFont = (HFONT)SelectObject(hDC, buttonFont);
+            SetTextColor(hDC, RGB(0, 0, 0)); // Black color
+            SetTextAlign(hDC, TA_CENTER); // Left align
+            SetBkMode(hDC, TRANSPARENT); // Transparent background
+            TextOutA(hDC, toggleLabelsButtonRect.left + (buttonSize / 2), toggleLabelsButtonRect.top + 1, "L", static_cast<int>(strlen("L")));
+            // Register clickable area for 'Label Toggle' button
+            RECT ClickableToggleLabelsArea = {
+                toggleLabelsButtonRect.left,
+                toggleLabelsButtonRect.top,
+                toggleLabelsButtonRect.right,
+                toggleLabelsButtonRect.bottom
+            };
+            AddScreenObject(TOGGLELABELSBUTTON, "TOGGLE_LABELS_BUTTON", ClickableToggleLabelsArea, false, "");
 
-            // Draw 'InsetSMR' label at top-left of inset
-            HFONT hFont = CreateFontA(16, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
-                                      ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                      DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
-                                      "Arial");
-            HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
+            // Draw DataLine Toggle Button
+            RECT toggleDataLineButtonRect = {
+                toggleLabelsButtonRect.left - buttonSize,
+                insetRect.top,
+                toggleLabelsButtonRect.left,
+                insetRect.top + buttonSize
+            };
+            Rectangle(hDC, toggleDataLineButtonRect.left, toggleDataLineButtonRect.top, toggleDataLineButtonRect.right, toggleDataLineButtonRect.bottom);
+            // Draw 'D' symbol using same settings as for above 'L'
+            // HFONT hOldFont = (HFONT)SelectObject(hDC, buttonFont);
+            // SetTextColor(hDC, RGB(0, 0, 0)); // Black color
+            // SetTextAlign(hDC, TA_CENTER); // Left align
+            // SetBkMode(hDC, TRANSPARENT); // Transparent background
+            TextOutA(hDC, toggleDataLineButtonRect.left + (buttonSize / 2), toggleDataLineButtonRect.top + 1, "D", static_cast<int>(strlen("D")));
+            // Register clickable area for 'Label Toggle' button
+            RECT ClickableToggleDataLineArea = {
+                toggleDataLineButtonRect.left,
+                toggleDataLineButtonRect.top,
+                toggleDataLineButtonRect.right,
+                toggleDataLineButtonRect.bottom
+            };
+            AddScreenObject(TOGGLEDATALINEBUTTON, "TOGGLE_DATALINE_BUTTON", ClickableToggleDataLineArea, false, "");
+
+            // Cleanup
+            SelectObject(hDC, hOldFont);
+            SelectObject(hDC, oldPen);
+
+            // Draw 'InsetSMR' title at top-left of inset
+            SelectObject(hDC, titleFont);
             SetTextColor(hDC, RGB(255, 255, 255)); // White color
             SetTextAlign(hDC, TA_LEFT); // Left align
             SetBkMode(hDC, TRANSPARENT); // Transparent background
-            const char* label = "InsetSMR";
-            TextOutA(hDC, insetRect.left + 5, insetRect.top + 5, label, static_cast<int>(strlen(label)));
+            TextOutA(hDC, insetRect.left + 5, insetRect.top + 5, title, static_cast<int>(strlen(title)));
+
+            //Cleanup
             SelectObject(hDC, hOldFont);
-            DeleteObject(hFont);
 
             // Clear clip region
             RestoreDC(hDC, savedDC);
             DeleteObject(clipRgn);
         }
+
+//            if (plugin) plugin->LogEvent("OnRefresh end");
     }
 
     bool RadarScreen::isShowingInsetSMR() {
