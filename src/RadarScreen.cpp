@@ -191,8 +191,36 @@ namespace RadarScreenNS{
                         MoveToEx(hDC, startPt.x, startPt.y, NULL);
                         LineTo(hDC, endPt.x, endPt.y);
 
+                        // Cleanup
                         SelectObject(hDC, hOldPen);
                         DeleteObject(hPen);
+                    }
+
+                    // Draw each LABEL
+                    auto labels = sectorFileLoader->getLabels();
+                    for (const auto &label : *labels) {
+                        // Calculate position
+                        double labelXNorm = (label.position.lon - viewArea.minViewLon) / lonRange;
+                        double labelYNorm = (label.position.lat - viewArea.minViewLat) / latRange;
+                        POINT labelPt = {
+                            insetTopLeftPosition.x + static_cast<LONG>(labelXNorm * normalInsetWidth),
+                            insetTopLeftPosition.y  + normalInsetHeight - static_cast<LONG>(labelYNorm * normalInsetHeight)
+                        };
+
+                        // Draw Label
+                        HFONT hFont = CreateFontA(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+                                          ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                          DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+                                          "Arial");
+                        HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
+                        SetTextColor(hDC, RGB(label.colour.Red, label.colour.Blue, label.colour.Green));
+                        SetTextAlign(hDC, TA_CENTER); // Central alignment
+                        SetBkMode(hDC, TRANSPARENT); // Transparent background
+                        TextOutA(hDC, labelPt.x, labelPt.y, label.label.c_str(), static_cast<int>(label.label.length()));
+
+                        // Cleanup
+                        SelectObject(hDC, hOldFont);
+                        DeleteObject(hFont);
                     }
                 }
             }
@@ -254,6 +282,7 @@ namespace RadarScreenNS{
                                           "Courier New");
                 HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
                 SetTextColor(hDC, RGB(255, 255, 0)); // Yellowish color
+                SetTextAlign(hDC, TA_LEFT); // Left align
                 SetBkMode(hDC, TRANSPARENT); // Transparent background
                 TextOutA(hDC, acPt.x + 5, acPt.y - 8, acCallsign.c_str(), static_cast<int>(acCallsign.length()));
 
@@ -264,11 +293,13 @@ namespace RadarScreenNS{
                 }
 
                 // Cleanup
-                SelectObject(hDC, oldBrush);
-                SelectObject(hDC, oldPen);
                 SelectObject(hDC, hOldFont);
                 DeleteObject(hFont);
+
+                SelectObject(hDC, oldBrush);
                 DeleteObject(hBrush);
+
+                SelectObject(hDC, oldPen);
                 DeleteObject(hPen);
             }
 
@@ -340,6 +371,7 @@ namespace RadarScreenNS{
                                       "Arial");
             HFONT hOldFont = (HFONT)SelectObject(hDC, hFont);
             SetTextColor(hDC, RGB(255, 255, 255)); // White color
+            SetTextAlign(hDC, TA_LEFT); // Left align
             SetBkMode(hDC, TRANSPARENT); // Transparent background
             const char* label = "InsetSMR";
             TextOutA(hDC, insetRect.left + 5, insetRect.top + 5, label, static_cast<int>(strlen(label)));
