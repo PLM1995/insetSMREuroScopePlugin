@@ -27,9 +27,11 @@ namespace RadarScreenNS
         RadarScreen(InsetSMRNS::InsetSMR* pluginInstance);
 
         virtual void OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button);
-        virtual void OnMoveScreenObject ( int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released );
+        virtual void OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released);
         virtual void OnRefresh(HDC hDC, int phase);
         virtual void OnAsrContentToBeClosed() override { /* no-op */ }
+        virtual void OnAsrContentLoaded(bool Loaded);
+        virtual void OnAsrContentToBeSaved();
 
         bool SetShowingInsetSMR(bool show);
 
@@ -45,11 +47,12 @@ namespace RadarScreenNS
 
     private:
         // Initially top-left corner
-        // TODO: Allow saving/loading of position to/from the .asr
         const int defaultInsetTop = 50;
         const int defaultInsetLeft = 10;
         POINT insetTopLeftPosition = { defaultInsetLeft, defaultInsetTop };
         std::mutex insetTopLeftPositionMutex;
+        void setInsetTopLeftPosition(int x, int y);
+        POINT getInsetTopLeftPosition();
 
         InsetSMRNS::InsetSMR* plugin;
 
@@ -57,15 +60,18 @@ namespace RadarScreenNS
         bool showingInsetSMR = true;
         std::mutex showingInsetSMRMutex;
 
+        void SetInsetSMRMinimised(bool minimised);
         void ToggleInsetSMRMinimised();
         bool insetSMRMinimised = false;
         std::mutex insetSMRMinimisedMutex;
         bool isInsetSMRMinimised();
 
+        void SetDataLine(bool show);
         bool showDataLine = true;
         std::mutex showDataLineMutex;
         bool isDataLineShown();
 
+        void SetLabels(bool show);
         bool showLabels = true;
         std::mutex showLabelsMutex;
         bool areLabelsShown();

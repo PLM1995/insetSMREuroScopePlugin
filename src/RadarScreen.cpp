@@ -64,14 +64,13 @@ namespace RadarScreenNS{
         }
     }
     
-    void RadarScreen::OnMoveScreenObject ( int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released ) {
+    void RadarScreen::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released) {
         if (ObjectType == INSETSMROBJECT && std::strcmp(sObjectId, "InsetSMR") == 0) {
-            std::lock_guard<std::mutex> lock(insetTopLeftPositionMutex);
-            insetTopLeftPosition.x = Pt.x - (Area.right - Area.left) / 2;
-            insetTopLeftPosition.y = Pt.y  - (Area.bottom - Area.top) / 2;
+            setInsetTopLeftPosition(Pt.x - (Area.right - Area.left) / 2, Pt.y  - (Area.bottom - Area.top) / 2);
 
+            // Persist the final position
             if (Released) {
-                // TODO: persist the final position
+                OnAsrContentToBeSaved();
             }
         }
     }
@@ -93,8 +92,10 @@ namespace RadarScreenNS{
             
             // Position and size inset based on minimisation and drag
             RECT insetRect;
-            insetRect.left = insetTopLeftPosition.x;
-            insetRect.top =  insetTopLeftPosition.y;
+            {
+                insetRect.left = getInsetTopLeftPosition().x;
+                insetRect.top =  getInsetTopLeftPosition().y;
+            }
             if (!isInsetSMRMinimised()) {
                 insetRect.right  = insetRect.left + normalInsetWidth;
                 insetRect.bottom = insetRect.top + normalInsetHeight;
@@ -355,11 +356,11 @@ namespace RadarScreenNS{
                 LineTo(hDC, minimiseButtonRect.right - 3, minimiseButtonRect.bottom - 3);
             } else {
                 // Box symbol in button
-                MoveToEx(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3, NULL);
-                LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.bottom - 3);
-                LineTo(hDC, minimiseButtonRect.right + 3, minimiseButtonRect.top + 3);
-                LineTo(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.top + 3);
-                LineTo(hDC, minimiseButtonRect.left - 3, minimiseButtonRect.bottom - 3);
+                MoveToEx(hDC, minimiseButtonRect.left + 3, minimiseButtonRect.bottom - 3, NULL);
+                LineTo(hDC, minimiseButtonRect.right - 3, minimiseButtonRect.bottom - 3);
+                LineTo(hDC, minimiseButtonRect.right - 3, minimiseButtonRect.top + 3);
+                LineTo(hDC, minimiseButtonRect.left + 3, minimiseButtonRect.top + 3);
+                LineTo(hDC, minimiseButtonRect.left + 3, minimiseButtonRect.bottom - 3);
             }
             // Register clickable area for 'Minimise' button
             RECT ClickableMinimiseArea = {
@@ -438,21 +439,106 @@ namespace RadarScreenNS{
 //            if (plugin) plugin->LogEvent("OnRefresh end");
     }
 
+    void RadarScreen::OnAsrContentLoaded(bool Loaded) {
+        const char *prefered_value;
+        int position_x = defaultInsetLeft;
+        int position_y = defaultInsetTop;
+        if ((prefered_value = GetDataFromAsr("PositionX")) != NULL) {
+            position_x = atoi(prefered_value);
+        }
+        if ((prefered_value = GetDataFromAsr("PositionY")) != NULL) {
+            position_y = atoi(prefered_value);
+        }
+        if (position_x != NULL && position_y != NULL) {
+            setInsetTopLeftPosition(position_x, position_y);
+        }
+        if ((prefered_value = GetDataFromAsr("ScaleFactor")) != NULL) {
+            SetScaleFactor(atoi(prefered_value));
+        }
+        if ((prefered_value = GetDataFromAsr("DataLineShown")) != NULL) {
+            if (atoi(prefered_value) == 0) {
+                SetDataLine(false);
+            }
+            else {
+                SetDataLine(true);
+            }
+        }
+        if ((prefered_value = GetDataFromAsr("LabelsShown")) != NULL) {
+            if (atoi(prefered_value) == 0) {
+                SetLabels(false);
+            }
+            else {
+                SetLabels(true);
+            }
+        }
+        if ((prefered_value = GetDataFromAsr("Collapsed")) != NULL) {
+            if (atoi(prefered_value) == 1) {
+                SetInsetSMRMinimised(true);
+            }
+            else {
+                SetInsetSMRMinimised(false);
+            }
+        }
+        if ((prefered_value = GetDataFromAsr("Showing")) != NULL) {
+            if (atoi(prefered_value) == 0) {
+                SetShowingInsetSMR(false);
+            }
+            else {
+                SetShowingInsetSMR(true);
+            }
+        }
+        // TODO: Implement these:
+        // Mode
+        // Runway
+        // Airport
+    }
+
+    void RadarScreen::OnAsrContentToBeSaved() {
+        SaveDataToAsr("PositionX", "InsetSMR Position from left of screen", std::to_string(getInsetTopLeftPosition().x).c_str());
+        SaveDataToAsr("PositionY", "InsetSMR Position from top of screen", std::to_string(getInsetTopLeftPosition().y).c_str());
+        SaveDataToAsr("ScaleFactor", "InsetSMR Scalar", std::to_string(getScaleFactor()).c_str());
+        SaveDataToAsr("DataLineShown", "InsetSMR Show Data Line", std::to_string(isDataLineShown()).c_str());
+        SaveDataToAsr("LabelsShown", "InsetSMR Show SMR Labels", std::to_string(areLabelsShown()).c_str());
+        SaveDataToAsr("Collapsed", "InsetSMR Minimised", std::to_string(isInsetSMRMinimised()).c_str());
+        SaveDataToAsr("Showing", "InsetSMR Showing", std::to_string(isShowingInsetSMR()).c_str());
+        // TODO: Implement these:
+        // Mode
+        // Runway
+        // Airport
+    }
+
+    void RadarScreen::setInsetTopLeftPosition(int x, int y) {
+        std::lock_guard<std::mutex> lock(insetTopLeftPositionMutex);
+        insetTopLeftPosition.x = x;
+        insetTopLeftPosition.y = y;
+    }
+    
+    POINT RadarScreen::getInsetTopLeftPosition() {
+        std::lock_guard<std::mutex> lock(insetTopLeftPositionMutex);
+        return insetTopLeftPosition;
+    }
+
     bool RadarScreen::isShowingInsetSMR() {
         std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
         return showingInsetSMR;
     }
 
     bool RadarScreen::SetShowingInsetSMR(bool newState) {
-        std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
-        bool existingState = showingInsetSMR;
+        bool existingState = isShowingInsetSMR();
 
-        if (newState != existingState) {
-            showingInsetSMR = newState;
-            return true; // State changed
+        if (newState == existingState) {
+            return false; // No change
+            
         }
 
-        return false; // No change
+        {
+            std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
+            showingInsetSMR = newState;
+        }
+        
+        // Persist the state
+        OnAsrContentToBeSaved();
+        return true; // State changed
     }
 
     void RadarScreen::SetInsetViewArea(InsetSMRNS::ViewCoordinates viewArea) {
@@ -464,36 +550,52 @@ namespace RadarScreenNS{
     }
 
     void RadarScreen::SetScaleFactor(int newScaleFactor) {
-        std::lock_guard<std::mutex> lock(scaleFactorMutex);
-        scaleFactor = newScaleFactor;
+        {
+            std::lock_guard<std::mutex> lock(scaleFactorMutex);
+            scaleFactor = newScaleFactor;
+        }
+        // Persist the state
+        OnAsrContentToBeSaved();
     }
 
     void RadarScreen::ToggleDataLine() {
-        std::lock_guard<std::mutex> lock (showDataLineMutex);
-        showDataLine = !showDataLine;
-        if (showDataLine) {
+        {
+            std::lock_guard<std::mutex> lock (showDataLineMutex);
+            showDataLine = !showDataLine;
+        }
+        if (isDataLineShown()) {
             if (plugin) plugin->DisplayMessage("Enabled", "Toggled dataline");
         }
         else {
             if (plugin) plugin->DisplayMessage("Disabled", "Toggled dataline");
         }
+        // Persist the state
+        OnAsrContentToBeSaved();
     }
 
     void RadarScreen::ToggleLabels() {
-        std::lock_guard<std::mutex> lock (showLabelsMutex);
-        showLabels = !showLabels;
-        if (showLabels) {
+        {
+            std::lock_guard<std::mutex> lock (showLabelsMutex);
+            showLabels = !showLabels;
+        }
+        if (areLabelsShown()) {
             if (plugin) plugin->DisplayMessage("Enabled", "Toggled labels");
         }
         else {
             if (plugin) plugin->DisplayMessage("Disabled", "Toggled labels");
         }
+        // Persist the state
+        OnAsrContentToBeSaved();
     }
 
     void RadarScreen::resetTopLeftPosition() {
-        std::lock_guard<std::mutex> lock(insetTopLeftPositionMutex);
-        insetTopLeftPosition = { defaultInsetLeft, defaultInsetTop };
+        {
+            std::lock_guard<std::mutex> lock(insetTopLeftPositionMutex);
+            insetTopLeftPosition = { defaultInsetLeft, defaultInsetTop };
+        }
         if (plugin) plugin->DisplayMessage("Now at default top-left corner", "Reset Position");
+        // Persist the state
+        OnAsrContentToBeSaved();
     }
 
     InsetSMRNS::ViewCoordinates RadarScreen::getInsetViewArea() {
@@ -502,9 +604,18 @@ namespace RadarScreenNS{
         return snapshot;
     }
 
-    void RadarScreen::ToggleInsetSMRMinimised () {
+    void RadarScreen::SetInsetSMRMinimised(bool minimised) {
         std::lock_guard<std::mutex> lock(insetSMRMinimisedMutex);
-        insetSMRMinimised = !insetSMRMinimised;
+        insetSMRMinimised = minimised;
+    }
+
+    void RadarScreen::ToggleInsetSMRMinimised () {
+        {
+            std::lock_guard<std::mutex> lock(insetSMRMinimisedMutex);
+            insetSMRMinimised = !insetSMRMinimised;
+        }
+        // Persist the state
+        OnAsrContentToBeSaved();
     }
     
     bool RadarScreen::isInsetSMRMinimised() {
@@ -512,9 +623,19 @@ namespace RadarScreenNS{
         return insetSMRMinimised;
     }
 
+    void RadarScreen::SetDataLine(bool show) {
+        std::lock_guard<std::mutex> lock (showDataLineMutex);
+        showDataLine = show;
+    }
+
     bool RadarScreen::isDataLineShown() {
         std::lock_guard<std::mutex> lock (showDataLineMutex);
         return showDataLine;
+    }
+
+    void RadarScreen::SetLabels(bool show) {
+        std::lock_guard<std::mutex> lock (showLabelsMutex);
+        showLabels = show;
     }
 
     bool RadarScreen::areLabelsShown() {
