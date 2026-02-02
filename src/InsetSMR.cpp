@@ -350,6 +350,8 @@ namespace InsetSMRNS
         // Read data
         std::vector<std::string> RelevantGeoNames;
         std::vector<std::string> RelevantRegionNames;
+        std::vector<std::string> RelevantExtraLabelsNames;
+        std::string ExtraLabelsColour;
         ViewCoordinates viewCoordinates{}; // zero-init to avoid uninitialized values
         bool AirportInJSON = false;
         bool CoordinatesFound = false;
@@ -373,6 +375,15 @@ namespace InsetSMRNS
                     for (const auto& region : config_info["SMR_REGIONs"]) {
                         RelevantRegionNames.push_back(region);
                     }
+                }
+                // Extract EXTRA_LABELS and EXTRA_LABEL_COLOUR
+                if (config_info.contains("EXTRA_LABELS")) {
+                    for (const auto& labelFamily : config_info["EXTRA_LABELS"]) {
+                        RelevantExtraLabelsNames.push_back(labelFamily);
+                    }
+                }
+                if (config_info.contains("EXTRA_LABEL_COLOUR")) {
+                    ExtraLabelsColour = config_info["EXTRA_LABEL_COLOUR"];
                 }
                 // Extract Airport SMR View Coordinates
                 if (config_info.contains("SMR_COORDs") && viewMode == AIRPORT) {
@@ -427,7 +438,7 @@ namespace InsetSMRNS
         // Update the active airport (hold the lock only for the assignment)
         {
             std::lock_guard<std::mutex> lock(ActiveViewMutex);
-            activeView = { ICAO, RelevantGeoNames, RelevantRegionNames, viewCoordinates };
+            activeView = { ICAO, RelevantGeoNames, RelevantRegionNames, RelevantExtraLabelsNames, ExtraLabelsColour, viewCoordinates };
         }
 
         // Re-load the sector data (as the sector file loading is airport specific).

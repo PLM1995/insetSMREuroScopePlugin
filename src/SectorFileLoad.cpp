@@ -182,12 +182,12 @@ namespace SectorFileLoadNS {
             const int maxAttempts = 6;
             const auto delay = std::chrono::milliseconds(250);
             std::ifstream SCTFileStream;
-            bool opened = false;
+            bool SCTopened = false;
             for (int attempt = 1; attempt <= maxAttempts; ++attempt) {
                 if (plugin) plugin->LogEvent(std::string("LoadSectorFile: open attempt ") + std::to_string(attempt));
                 try {
                     if (!std::filesystem::exists(SCTFilePath)) {
-                        if (plugin) plugin->DisplayMessage(SCTFilePath.string().c_str(), "Sector file not found at");
+                        if (plugin) plugin->DisplayMessage(SCTFilePath.string().c_str(), ".sct file not found at");
                         return;
                     }
                     if (plugin) plugin->LogEvent(std::string("LoadSectorFile: exists returned true for ") + SCTFilePath.string());
@@ -200,7 +200,7 @@ namespace SectorFileLoadNS {
                 // Try to open with ifstream
                 SCTFileStream.open(SCTFilePath, std::ios::in);
                 if (SCTFileStream.is_open()) {
-                    opened = true;
+                    SCTopened = true;
                     break;
                 }
                 else {
@@ -216,7 +216,7 @@ namespace SectorFileLoadNS {
                     CloseHandle(h);
                     // Try opening stream again
                     SCTFileStream.open(SCTFilePath, std::ios::in);
-                    if (SCTFileStream.is_open()) { opened = true; break; }
+                    if (SCTFileStream.is_open()) { SCTopened = true; break; }
                 } else {
                     DWORD err = GetLastError();
                     if (plugin) plugin->LogEvent(std::string("CreateFile attempt ") + std::to_string(attempt) + " failed with GetLastError=" + std::to_string(err));
@@ -225,14 +225,14 @@ namespace SectorFileLoadNS {
                 if (attempt < maxAttempts) std::this_thread::sleep_for(delay);
             }
 
-            if (!opened) {
+            if (!SCTopened) {
                 if (plugin) plugin->DisplayMessage("Failed to open .sct file after retries.", "Error");
                 if (plugin) plugin->LogEvent(std::string("Failed to open .sct file: ") + SCTFilePath.string());
                 return;
             }
             if (plugin) plugin->DisplayMessage(SCTFilePath.string().c_str(), "Loading .sct file from");
 
-            // Sector file loading logic
+            // .sct file loading logic
             std::string line = "";
             std::string currentSection =  "";
             std::string currentGeoName = "";
@@ -335,7 +335,6 @@ namespace SectorFileLoadNS {
                 }
 
                 // Parse LABELS section (default .sct labels)
-                
                 else if (currentSection == "LABELS") {
                     std::vector<std::string> splitLine = splitString(line, ' ');
                     // NOTE: We save all of which don't start with a number, as there's no better way to tell which are holding points
@@ -346,8 +345,7 @@ namespace SectorFileLoadNS {
                         label.label = fullLabel.substr(fullLabel.find_first_of("\"") + 1, fullLabel.find_last_of("\"") - 1); // Strips quotes from label
                         try_dms_to_decimal(splitLine[1], label.position.lat);
                         try_dms_to_decimal(splitLine[2], label.position.lon);
-                        label.colour.name = splitLine[3];
-                        label.colour = getColourFromName(label.colour.name);
+                        label.colour = getColourFromName(splitLine[3]);
                         labels.push_back(label);
                         continue;  // Move to read next line
                     } else {
@@ -445,18 +443,108 @@ namespace SectorFileLoadNS {
 
             SCTFileStream.close();
 
-            // TODO: Load ESE data
+            // Retry loop to handle transient locks (antivirus, OneDrive sync, other process)
+            std::ifstream ESEFileStream;
+            bool ESEopened = false;
+            for (int attempt = 1; attempt <= maxAttempts; ++attempt) {
+                if (plugin) plugin->LogEvent(std::string("LoadSectorFile: open attempt ") + std::to_string(attempt));
+                try {
+                    if (!std::filesystem::exists(ESEFilePath)) {
+                        if (plugin) plugin->DisplayMessage(ESEFilePath.string().c_str(), ".ese file not found at");
+                        return;
+                    }
+                    if (plugin) plugin->LogEvent(std::string("LoadSectorFile: exists returned true for ") + ESEFilePath.string());
+                } catch (const std::filesystem::filesystem_error &fex) {
+                    if (plugin) plugin->LogEvent(std::string("Attempt ") + std::to_string(attempt) + ": filesystem::exists threw: " + fex.what());
+                    if (attempt < maxAttempts) std::this_thread::sleep_for(delay);
+                    continue;
+                }
 
-            // // Debugging Logs
-            // if (plugin) {
-            //     plugin->LogEvent(std::string("LoadSectorFile: geoLines=") + std::to_string(geoLines.size()) + ", regions=" + std::to_string(regions.size()) + ", colours=" + std::to_string(colourCodes.size()));
-            //     // Log first region names for debugging
-            //     for (size_t i = 0; i < regions.size() && i < 5; ++i) {
-            //         plugin->LogEvent(std::string("Region[") + std::to_string(i) + "]=" + regions[i].name);
-            //     }
-            // }
+                // Try to open with ifstream
+                ESEFileStream.open(ESEFilePath, std::ios::in);
+                if (ESEFileStream.is_open()) {
+                    ESEopened = true;
+                    break;
+                }
+                else {
+                    int err = errno;
+                    if (plugin) plugin->LogEvent(std::string("Attempt ") + std::to_string(attempt) + ": ifstream open failed, errno=" + std::to_string(err) + ", strerror=" + std::string(std::strerror(err)));
+                }
 
-            plugin->DisplayMessage("Sector file loaded", "Success");
+                // As a fallback, try CreateFile with sharing to probe file availability
+                HANDLE h = CreateFileA(ESEFilePath.string().c_str(), GENERIC_READ,
+                                        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                        NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                if (h != INVALID_HANDLE_VALUE) {
+                    CloseHandle(h);
+                    // Try opening stream again
+                    ESEFileStream.open(ESEFilePath, std::ios::in);
+                    if (ESEFileStream.is_open()) { ESEopened = true; break; }
+                } else {
+                    DWORD err = GetLastError();
+                    if (plugin) plugin->LogEvent(std::string("CreateFile attempt ") + std::to_string(attempt) + " failed with GetLastError=" + std::to_string(err));
+                }
+
+                if (attempt < maxAttempts) std::this_thread::sleep_for(delay);
+            }
+
+            if (!ESEopened) {
+                if (plugin) plugin->DisplayMessage("Failed to open .sct file after retries.", "Error");
+                if (plugin) plugin->LogEvent(std::string("Failed to open .sct file: ") + SCTFilePath.string());
+                return;
+            }
+            if (plugin) plugin->DisplayMessage(ESEFilePath.string().c_str(), "Loading .ese file from");
+
+            // .ese file loading logic
+            bool readSection = false;
+            while (std::getline(ESEFileStream, line)) {
+                // Skip empty lines, and comments
+                if (line.empty() || line[0] == ';') {
+                    continue;
+                }
+
+                // Check for section headers
+                if (line.find("[FREETEXT]") != std::string::npos) {
+                    currentSection = "FREETEXT";
+                    readSection = true;
+                    continue;
+                } else if (line.find("[") != std::string::npos) {
+                    readSection = false;
+                    continue;
+                }
+
+                // Makes things a bit faster by allowing ignoring of irrelevant sections
+                if (!readSection) {
+                    continue;
+                }
+
+                if (currentSection == "FREETEXT") {
+                    std::vector<std::string> splitLine = splitString(line, ':');
+                    if (splitLine.size() == 4) {
+                        std::string labelFamily = splitLine[2];
+                        // Decide whether to load this geo based on activeAirport.RelevantGeoNames
+                        for (const std::string &relevantLabelFamily : activeView.RelevantExtraLabelsNames) {
+                            if (labelFamily == relevantLabelFamily) {
+                                Label label;
+                                label.label = splitLine[3];
+                                label.category = labelFamily;
+                                label.colour = getColourFromName(activeView.ExtraLabelsColour);
+                                try_dms_to_decimal(splitLine[0], label.position.lat);
+                                try_dms_to_decimal(splitLine[1], label.position.lon);
+                                labels.push_back(label);
+                                continue; // No need to check against other families
+                            }
+                        }
+                        continue;  // Move to read next line
+                    } else {
+                        continue;  // Move to read next line
+                    }
+                }
+            }
+
+            ESEFileStream.close();
+
+            plugin->DisplayMessage("Sector file data loaded", "Success");
         }
         catch (const std::exception &ex) {
             if (plugin) plugin->LogEvent(std::string("LoadSectorFile exception: ") + ex.what());

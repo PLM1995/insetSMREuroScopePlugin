@@ -66,6 +66,8 @@ namespace InsetSMRNS
             std::string ICAO;
             std::vector<std::string> RelevantGeoNames;
             std::vector<std::string> RelevantRegionNames;
+            std::vector<std::string> RelevantExtraLabelsNames;
+            std::string ExtraLabelsColour;
             ViewCoordinates viewCoordinates;
             enum VIEWMODE activeViewMode;
         };
@@ -76,7 +78,7 @@ namespace InsetSMRNS
         
         View getActiveView();
 
-        bool setActiveView(std::string ICAO, enum VIEWMODE viewmode, std::string viewrunway = "");
+        bool setActiveView(std::string ICAO, enum VIEWMODE viewMode, std::string viewRunway = "");
 
     private:
         RadarScreenNS::RadarScreen* radarScreen = nullptr;
