@@ -295,7 +295,8 @@ namespace RadarScreenNS{
 
                 // Draw AC Type and SID below callsign if needed
                 if (isDataLineShown()) {
-                    std::string dataLine = acType + " " + SID;
+                    std::string abridgedSID = SID.substr(0, 3) + SID.substr(SID.size() - 2, SID.size());
+                    std::string dataLine = acType + " " + abridgedSID;
                     TextOutA(hDC, acPt.x + 5, acPt.y + 6, dataLine.c_str(), static_cast<int>(dataLine.length()));
                 }
 
