@@ -223,27 +223,17 @@ namespace InsetSMRNS
 
             // Handle .INSETSMR DATALINE
             else if (UpperCommand.find(".INSETSMR DATALINE") != std::string::npos) {
-                if (radarScreen->ToggleDataLine()) {
-                    DisplayMessage("Enabled", "Toggled dataline");
-                }
-                else {
-                    DisplayMessage("Disabled", "Toggled dataline");
-                }
+                radarScreen->ToggleDataLine();
                 return true; // Command handled
             }
 
             // Handle .INSETSMR LABELS
             else if (UpperCommand.find(".INSETSMR LABELS") != std::string::npos) {
-                if (radarScreen->ToggleLabels()) {
-                    DisplayMessage("Enabled", "Toggled labels");
-                }
-                else {
-                    DisplayMessage("Disabled", "Toggled labels");
-                }
+                radarScreen->ToggleLabels();
                 return true; // Command handled
             }
 
-            // Hangle .INSETSMR SIZE <SCALE>
+            // Handle .INSETSMR SIZE <SCALE>
             else if (UpperCommand.find(".INSETSMR SIZE ") != std::string::npos) {
                 int ScaleFactor = std::stoi(std::string(UpperCommand).substr(15).c_str()); // 15 is length of ".INSETSMR AIRPORT "
                 if (ScaleFactor < 1 || ScaleFactor > 9) {
@@ -256,11 +246,16 @@ namespace InsetSMRNS
                 DisplayMessage(std::to_string(ScaleFactor), "Set size to");
                 return true; // Command handled
             }
-          
-            // Unknown .INSETSMR command
-            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Holding <ICAO> <RUNWAY>\", \".InsetSMR Size <SCALE>\", \".InsetSMR Dataline\", \".InsetSMR Labels\", \".InsetSMR Hide\", and \".InsetSMR Show\"",
-                           "InsetSMR Command Error");
 
+            // Handle .INSETSMR RESETPOSITION
+            else if (UpperCommand.find(".INSETSMR RESETPOSITION") != std::string::npos) {
+                radarScreen->resetTopLeftPosition();
+                return true; // Command handled
+            }
+            
+            // Unknown .INSETSMR command
+            DisplayMessage("Unknown InsetSMR command. Supported commands are: \".InsetSMR Airport <ICAO>\", \".InsetSMR Holding <ICAO> <RUNWAY>\", \".InsetSMR Size <SCALE>\", \".InsetSMR Dataline\", \".InsetSMR Labels\", \".InsetSMR Hide\", \".InsetSMR Show\", and \".InsetSMR ResetPosition\"",
+                           "InsetSMR Command Error");
             return true; // Command handled
         }
         return false; // Command not handled

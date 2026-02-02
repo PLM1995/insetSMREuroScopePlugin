@@ -66,6 +66,7 @@ namespace RadarScreenNS{
     
     void RadarScreen::OnMoveScreenObject ( int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released ) {
         if (ObjectType == INSETSMROBJECT && std::strcmp(sObjectId, "InsetSMR") == 0) {
+            std::lock_guard<std::mutex> lock(insetTopLeftPositionMutex);
             insetTopLeftPosition.x = Pt.x - (Area.right - Area.left) / 2;
             insetTopLeftPosition.y = Pt.y  - (Area.bottom - Area.top) / 2;
 
@@ -467,16 +468,32 @@ namespace RadarScreenNS{
         scaleFactor = newScaleFactor;
     }
 
-    bool RadarScreen::ToggleDataLine() {
+    void RadarScreen::ToggleDataLine() {
         std::lock_guard<std::mutex> lock (showDataLineMutex);
         showDataLine = !showDataLine;
-        return showDataLine;
+        if (showDataLine) {
+            if (plugin) plugin->DisplayMessage("Enabled", "Toggled dataline");
+        }
+        else {
+            if (plugin) plugin->DisplayMessage("Disabled", "Toggled dataline");
+        }
     }
 
-    bool RadarScreen::ToggleLabels() {
+    void RadarScreen::ToggleLabels() {
         std::lock_guard<std::mutex> lock (showLabelsMutex);
         showLabels = !showLabels;
-        return showLabels;
+        if (showLabels) {
+            if (plugin) plugin->DisplayMessage("Enabled", "Toggled labels");
+        }
+        else {
+            if (plugin) plugin->DisplayMessage("Disabled", "Toggled labels");
+        }
+    }
+
+    void RadarScreen::resetTopLeftPosition() {
+        std::lock_guard<std::mutex> lock(insetTopLeftPositionMutex);
+        insetTopLeftPosition = { defaultInsetLeft, defaultInsetTop };
+        if (plugin) plugin->DisplayMessage("Now at default top-left corner", "Reset Position");
     }
 
     InsetSMRNS::ViewCoordinates RadarScreen::getInsetViewArea() {

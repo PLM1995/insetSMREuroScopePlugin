@@ -15,3 +15,4 @@ The supported commands (accessed through the EuroScope command line) are as foll
 - ".InsetSMR Labels" Toggles the SMR labels (holding points and any extras specified in the config.json file).
 - ".InsetSMR Hide" Hides the inset SMR all together (equivalent to clicking the 'X' in the top-right of the window).
 - ".InsetSMR Show" Shows the inset SMR again once hidden.
+- ".InsetSMR ResetPosition" Resets the position of the inset to the top-left of the screen in case it ever disappears off screen.

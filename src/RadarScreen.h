@@ -37,14 +37,19 @@ namespace RadarScreenNS
 
         void SetScaleFactor(int newScaleFactor);
 
-        bool ToggleDataLine();
+        void ToggleDataLine();
 
-        bool ToggleLabels();
+        void ToggleLabels();
+
+        void resetTopLeftPosition();
 
     private:
         // Initially top-left corner
         // TODO: Allow saving/loading of position to/from the .asr
-        POINT insetTopLeftPosition = { 10, 50 };
+        const int defaultInsetTop = 50;
+        const int defaultInsetLeft = 10;
+        POINT insetTopLeftPosition = { defaultInsetLeft, defaultInsetTop };
+        std::mutex insetTopLeftPositionMutex;
 
         InsetSMRNS::InsetSMR* plugin;
 
