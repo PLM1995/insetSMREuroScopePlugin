@@ -29,10 +29,6 @@ namespace InsetSMRNS
 
             // Create sector file loader before setting active airport (loader used by setActiveAirport)
             sectorFileLoader = new SectorFileLoadNS::SectorFileLoad(this);
-
-            // Initialise Active Airport (default invalid)
-            enum VIEWMODE VIEWMODE = AIRPORT;
-            setActiveView("ZZZZ", VIEWMODE); // TODO: Consider best default.
         }
         catch (const std::exception &ex) {
             try { LogEvent(std::string("Exception in InsetSMR ctor: ") + ex.what()); } catch(...) {}
@@ -146,7 +142,7 @@ namespace InsetSMRNS
         // Create a new RadarScreen for EuroScope to own.
         radarScreen = new RadarScreenNS::RadarScreen(this);
 
-
+        // Initialise Default View, expect this to be overridden by .asr settings if they exist
         enum VIEWMODE defaultVIEWMODE = HOLDINGAREA;
         std::string defaultRunway = "27L";
         std::string defaultAirport = "EGLL";
@@ -455,23 +451,19 @@ namespace InsetSMRNS
             if (sectorFileLoader) {
                 LogEvent("Calling SectorFileLoad::LoadSectorFile");
                 sectorFileLoader->LoadSectorFile();
-//                LogEvent("Returned from SectorFileLoad::LoadSectorFile");
             }
         } catch (const std::exception &ex) {
             LogEvent(std::string("Exception loading sector file: ") + ex.what());
             // non-fatal: continue without crashing the plugin
         }
 
-//        LogEvent("activeView object has been updated");
-
-        // Set Radar View Inset Area appropriately (if radar screen exists)
         // Obtain a snapshot of active view to read SMR view coordinates safely
         viewCoordinates = getActiveView().viewCoordinates;
-//        LogEvent("viewCoordinates set from active bview");
+        // Set Radar View Inset Area appropriately (if radar screen exists)
         if (radarScreen) {
             radarScreen->SetInsetViewArea(viewCoordinates);
         }
-//        LogEvent("radarScreen should now be updated");
+
         return true; // Successfully set active view
     }
 }

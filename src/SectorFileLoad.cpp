@@ -184,7 +184,7 @@ namespace SectorFileLoadNS {
             std::ifstream SCTFileStream;
             bool SCTopened = false;
             for (int attempt = 1; attempt <= maxAttempts; ++attempt) {
-                if (plugin) plugin->LogEvent(std::string("LoadSectorFile: open attempt ") + std::to_string(attempt));
+                if (plugin) plugin->LogEvent(std::string("LoadSectorFile: .sct open attempt ") + std::to_string(attempt));
                 try {
                     if (!std::filesystem::exists(SCTFilePath)) {
                         if (plugin) plugin->DisplayMessage(SCTFilePath.string().c_str(), ".sct file not found at");
@@ -300,9 +300,9 @@ namespace SectorFileLoadNS {
     //                                     }
                                     }
                                 }
-                                if (loadThisGeo){
-                                    if (plugin) plugin->LogEvent("Planning to capture the Geo beginning: " + line);
-                                }
+                                // if (loadThisGeo){
+                                //     if (plugin) plugin->LogEvent("Planning to capture the Geo beginning: " + line);
+                                // }
                             }                        
                         }
                         continue; // Read next line
@@ -447,7 +447,7 @@ namespace SectorFileLoadNS {
             std::ifstream ESEFileStream;
             bool ESEopened = false;
             for (int attempt = 1; attempt <= maxAttempts; ++attempt) {
-                if (plugin) plugin->LogEvent(std::string("LoadSectorFile: open attempt ") + std::to_string(attempt));
+                if (plugin) plugin->LogEvent(std::string("LoadSectorFile: .ese open attempt ") + std::to_string(attempt));
                 try {
                     if (!std::filesystem::exists(ESEFilePath)) {
                         if (plugin) plugin->DisplayMessage(ESEFilePath.string().c_str(), ".ese file not found at");

@@ -440,57 +440,105 @@ namespace RadarScreenNS{
     }
 
     void RadarScreen::OnAsrContentLoaded(bool Loaded) {
+        if (plugin) plugin->LogEvent("On ASR Content Loaded called");
         const char *prefered_value;
+
+        // Read all ASR keys into locals first to avoid persisting partial state back to ASR
         int position_x = defaultInsetLeft;
         int position_y = defaultInsetTop;
+        bool haveScale = false; int readScale = getScaleFactor();
+        bool haveDataLine = false; bool readDataLine = isDataLineShown();
+        bool haveLabels = false; bool readLabels = areLabelsShown();
+        bool haveCollapsed = false; bool readCollapsed = isInsetSMRMinimised();
+        bool haveShowing = false; bool readShowing = isShowingInsetSMR();
+
         if ((prefered_value = GetDataFromAsr("PositionX")) != NULL) {
-            position_x = atoi(prefered_value);
+            position_x = std::stoi(prefered_value);
         }
         if ((prefered_value = GetDataFromAsr("PositionY")) != NULL) {
-            position_y = atoi(prefered_value);
+            position_y = std::stoi(prefered_value);
         }
-        if (position_x != NULL && position_y != NULL) {
-            setInsetTopLeftPosition(position_x, position_y);
-        }
+
         if ((prefered_value = GetDataFromAsr("ScaleFactor")) != NULL) {
-            SetScaleFactor(atoi(prefered_value));
+            readScale = std::stoi(prefered_value);
+            haveScale = true;
         }
+
         if ((prefered_value = GetDataFromAsr("DataLineShown")) != NULL) {
-            if (atoi(prefered_value) == 0) {
-                SetDataLine(false);
-            }
-            else {
-                SetDataLine(true);
-            }
+            readDataLine = std::stoi(prefered_value) != 0;
+            haveDataLine = true;
         }
+
         if ((prefered_value = GetDataFromAsr("LabelsShown")) != NULL) {
-            if (atoi(prefered_value) == 0) {
-                SetLabels(false);
-            }
-            else {
-                SetLabels(true);
-            }
+            readLabels = std::stoi(prefered_value) != 0;
+            haveLabels = true;
         }
+
         if ((prefered_value = GetDataFromAsr("Collapsed")) != NULL) {
-            if (atoi(prefered_value) == 1) {
-                SetInsetSMRMinimised(true);
-            }
-            else {
-                SetInsetSMRMinimised(false);
-            }
+            readCollapsed = std::stoi(prefered_value) == 1;
+            haveCollapsed = true;
         }
+
         if ((prefered_value = GetDataFromAsr("Showing")) != NULL) {
-            if (atoi(prefered_value) == 0) {
-                SetShowingInsetSMR(false);
-            }
-            else {
-                SetShowingInsetSMR(true);
-            }
+            readShowing = std::stoi(prefered_value) != 0;
+            haveShowing = true;
         }
-        // TODO: Implement these:
-        // Mode
-        // Runway
-        // Airport
+
+        if (plugin) plugin->LogEvent("About to read asr values for view area.");
+
+        InsetSMRNS::ViewCoordinates viewCoordinates = {};
+        bool gotMinLon = false, gotMinLat = false, gotMaxLon = false, gotMaxLat = false;
+        if ((prefered_value = GetDataFromAsr("minViewLon")) != NULL) {
+            if (plugin) plugin->LogEvent(std::string("ASR minViewLon raw='") + prefered_value + "'");
+            viewCoordinates.minViewLon = std::stod(prefered_value);
+            gotMinLon = true;
+        } else {
+            if (plugin) plugin->LogEvent("ASR minViewLon not found");
+        }
+        if ((prefered_value = GetDataFromAsr("minViewLat")) != NULL) {
+            if (plugin) plugin->LogEvent(std::string("ASR minViewLat raw='") + prefered_value + "'");
+            viewCoordinates.minViewLat = std::stod(prefered_value);
+            gotMinLat = true;
+        } else {
+            if (plugin) plugin->LogEvent("ASR minViewLat not found");
+        }
+        if ((prefered_value = GetDataFromAsr("maxViewLon")) != NULL) {
+            if (plugin) plugin->LogEvent(std::string("ASR maxViewLon raw='") + prefered_value + "'");
+            viewCoordinates.maxViewLon = std::stod(prefered_value);
+            gotMaxLon = true;
+        } else {
+            if (plugin) plugin->LogEvent("ASR maxViewLon not found");
+        }
+        if ((prefered_value = GetDataFromAsr("maxViewLat")) != NULL) {
+            if (plugin) plugin->LogEvent(std::string("ASR maxViewLat raw='") + prefered_value + "'");
+            viewCoordinates.maxViewLat = std::stod(prefered_value);
+            gotMaxLat = true;
+        } else {
+            if (plugin) plugin->LogEvent("ASR maxViewLat not found");
+        }
+        if (gotMinLon && gotMinLat && gotMaxLon && gotMaxLat) {
+            SetInsetViewArea(viewCoordinates);
+        }
+
+        // Now apply the other values we read earlier so persistence happens after all reads
+        setInsetTopLeftPosition(position_x, position_y);
+        if (haveScale) {
+            SetScaleFactor(readScale);
+        }
+        if (haveDataLine) {
+            SetDataLine(readDataLine);
+        }
+        if (haveLabels) {
+            SetLabels(readLabels);
+        }
+        if (haveCollapsed) {
+            SetInsetSMRMinimised(readCollapsed);
+        }
+        if (haveShowing) {
+            SetShowingInsetSMR(readShowing);
+        }
+
+        if (plugin) plugin->LogEvent("On ASR Content Loaded completed");
     }
 
     void RadarScreen::OnAsrContentToBeSaved() {
@@ -501,10 +549,10 @@ namespace RadarScreenNS{
         SaveDataToAsr("LabelsShown", "InsetSMR Show SMR Labels", std::to_string(areLabelsShown()).c_str());
         SaveDataToAsr("Collapsed", "InsetSMR Minimised", std::to_string(isInsetSMRMinimised()).c_str());
         SaveDataToAsr("Showing", "InsetSMR Showing", std::to_string(isShowingInsetSMR()).c_str());
-        // TODO: Implement these:
-        // Mode
-        // Runway
-        // Airport
+        SaveDataToAsr("minViewLon", "InsetSMR Lowest Longitude", std::to_string(getInsetViewArea().minViewLon).c_str());
+        SaveDataToAsr("minViewLat", "InsetSMR Lowest Latitude", std::to_string(getInsetViewArea().minViewLat).c_str());
+        SaveDataToAsr("maxViewLon", "InsetSMR Highest Longitude", std::to_string(getInsetViewArea().maxViewLon).c_str());
+        SaveDataToAsr("maxViewLat", "InsetSMR highest Latitude", std::to_string(getInsetViewArea().maxViewLat).c_str());
     }
 
     void RadarScreen::setInsetTopLeftPosition(int x, int y) {
@@ -542,11 +590,14 @@ namespace RadarScreenNS{
     }
 
     void RadarScreen::SetInsetViewArea(InsetSMRNS::ViewCoordinates viewArea) {
-        std::lock_guard<std::mutex> lock(insetViewAreaMutex);
-        insetViewArea = viewArea;
-        if (plugin) {
-            plugin->LogEvent("insetViewArea set with values: " + std::to_string(insetViewArea.maxViewLat) + " " + std::to_string(insetViewArea.minViewLat) + " " + std::to_string(insetViewArea.maxViewLon) + " " + std::to_string(insetViewArea.minViewLon));
+        {
+            std::lock_guard<std::mutex> lock(insetViewAreaMutex);
+            insetViewArea = viewArea;
         }
+        if (plugin) plugin->LogEvent("insetViewArea set with values: " + std::to_string(viewArea.maxViewLat) + " " + std::to_string(viewArea.minViewLat) + " " + std::to_string(viewArea.maxViewLon) + " " + std::to_string(viewArea.minViewLon));
+        
+        // Persist the state
+        OnAsrContentToBeSaved();
     }
 
     void RadarScreen::SetScaleFactor(int newScaleFactor) {
