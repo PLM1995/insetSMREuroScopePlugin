@@ -484,42 +484,26 @@ namespace RadarScreenNS{
             haveShowing = true;
         }
 
-        if (plugin) plugin->LogEvent("About to read asr values for view area.");
-
-        ViewDataNS::ViewData::ViewCoordinates viewCoordinates = {};
-        bool gotMinLon = false, gotMinLat = false, gotMaxLon = false, gotMaxLat = false;
-        if ((prefered_value = GetDataFromAsr("minViewLon")) != NULL) {
-            if (plugin) plugin->LogEvent(std::string("ASR minViewLon raw='") + prefered_value + "'");
-            viewCoordinates.minViewLon = std::stod(prefered_value);
-            gotMinLon = true;
-        } else {
-            if (plugin) plugin->LogEvent("ASR minViewLon not found");
+        bool gotICAO = false;
+        bool gotMode = false;
+        ViewDataNS::ViewData::View newView;
+        if (plugin) {
+            newView = plugin->getActiveView();
         }
-        if ((prefered_value = GetDataFromAsr("minViewLat")) != NULL) {
-            if (plugin) plugin->LogEvent(std::string("ASR minViewLat raw='") + prefered_value + "'");
-            viewCoordinates.minViewLat = std::stod(prefered_value);
-            gotMinLat = true;
-        } else {
-            if (plugin) plugin->LogEvent("ASR minViewLat not found");
+        if ((prefered_value = GetDataFromAsr("ICAO")) != NULL) {
+            newView.ICAO = prefered_value;
+            gotICAO = true;
         }
-        if ((prefered_value = GetDataFromAsr("maxViewLon")) != NULL) {
-            if (plugin) plugin->LogEvent(std::string("ASR maxViewLon raw='") + prefered_value + "'");
-            viewCoordinates.maxViewLon = std::stod(prefered_value);
-            gotMaxLon = true;
-        } else {
-            if (plugin) plugin->LogEvent("ASR maxViewLon not found");
+        if ((prefered_value = GetDataFromAsr("Mode")) != NULL) {
+            newView.activeViewMode = static_cast<ViewDataNS::ViewData::VIEWMODE>(std::stoi(prefered_value));
+            gotMode = true;
         }
-        if ((prefered_value = GetDataFromAsr("maxViewLat")) != NULL) {
-            if (plugin) plugin->LogEvent(std::string("ASR maxViewLat raw='") + prefered_value + "'");
-            viewCoordinates.maxViewLat = std::stod(prefered_value);
-            gotMaxLat = true;
-        } else {
-            if (plugin) plugin->LogEvent("ASR maxViewLat not found");
+        if ((prefered_value = GetDataFromAsr("Runway")) != NULL) {
+            newView.activeRunway = prefered_value;
         }
-        if (gotMinLon && gotMinLat && gotMaxLon && gotMaxLat) {
-            SetInsetViewArea(viewCoordinates);
+        if (gotICAO && gotMode) {
+            plugin->RequestSetActiveView(newView.ICAO, newView.activeViewMode, newView.activeRunway);
         }
-        // TODO: Need to set regions and geos and labels appropriately as well, not just view area - i.e. call setActiveView() instead
 
         // Now apply the other values we read earlier so persistence happens after all reads
         setInsetTopLeftPosition(position_x, position_y);
@@ -550,10 +534,11 @@ namespace RadarScreenNS{
         SaveDataToAsr("LabelsShown", "InsetSMR Show SMR Labels", std::to_string(areLabelsShown()).c_str());
         SaveDataToAsr("Collapsed", "InsetSMR Minimised", std::to_string(isInsetSMRMinimised()).c_str());
         SaveDataToAsr("Showing", "InsetSMR Showing", std::to_string(isShowingInsetSMR()).c_str());
-        SaveDataToAsr("minViewLon", "InsetSMR Lowest Longitude", std::to_string(getInsetViewArea().minViewLon).c_str());
-        SaveDataToAsr("minViewLat", "InsetSMR Lowest Latitude", std::to_string(getInsetViewArea().minViewLat).c_str());
-        SaveDataToAsr("maxViewLon", "InsetSMR Highest Longitude", std::to_string(getInsetViewArea().maxViewLon).c_str());
-        SaveDataToAsr("maxViewLat", "InsetSMR highest Latitude", std::to_string(getInsetViewArea().maxViewLat).c_str());
+        if (plugin) {
+            SaveDataToAsr("ICAO", "InsetSMR Active Airport", plugin->getActiveView().ICAO.c_str());
+            SaveDataToAsr("Mode", "InsetSMR Active Mode", std::to_string(plugin->getActiveView().activeViewMode).c_str());
+            SaveDataToAsr("Runway", "InsetSMR Active Runway", plugin->getActiveView().activeRunway.c_str());
+        }
     }
 
     void RadarScreen::setInsetTopLeftPosition(int x, int y) {
@@ -601,9 +586,6 @@ namespace RadarScreenNS{
             insetViewArea = viewArea;
         }
         if (plugin) plugin->LogEvent("insetViewArea set with values: " + std::to_string(viewArea.maxViewLat) + " " + std::to_string(viewArea.minViewLat) + " " + std::to_string(viewArea.maxViewLon) + " " + std::to_string(viewArea.minViewLon));
-        
-        // Persist the state
-        OnAsrContentToBeSaved();
     }
 
     void RadarScreen::SetScaleFactor(int newScaleFactor) {
@@ -617,7 +599,13 @@ namespace RadarScreenNS{
 
     bool RadarScreen::setActiveView(std::string ICAO, enum ViewDataNS::ViewData::VIEWMODE viewMode, std::string viewRunway) {
         if (!plugin) return false;
-        return plugin->RequestSetActiveView(ICAO, viewMode, viewRunway);
+        if (plugin->RequestSetActiveView(ICAO, viewMode, viewRunway)) {
+            // Persist the state
+            OnAsrContentToBeSaved();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void RadarScreen::SetInsetSMRMinimised(bool minimised) {

@@ -38,6 +38,8 @@ namespace InsetSMRNS
         InsetSMR();
         ~InsetSMR();
 
+        RadarScreenNS::RadarScreen* GetRadarScreen() { return radarScreen; }
+
         SectorFileLoadNS::SectorFileLoad* GetSectorFileLoader() { return sectorFileLoader; }
 
         void DisplayMessage(const std::string &message,

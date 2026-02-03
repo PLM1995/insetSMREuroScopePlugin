@@ -43,10 +43,11 @@ namespace ViewDataNS {
             std::string ExtraLabelsColour;
             ViewCoordinates viewCoordinates;
             enum VIEWMODE activeViewMode;
+            std::string activeRunway;
         };
 
         View getActiveView();
-        bool setActiveView(std::string ICAO, VIEWMODE viewMode, std::string viewRunway, RadarScreenNS::RadarScreen* radarScreen, SectorFileLoadNS::SectorFileLoad* sectorFileLoader);
+        bool setActiveView(std::string ICAO, VIEWMODE viewMode, std::string viewRunway);
 
     private:
         View activeView = {};

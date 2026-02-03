@@ -275,7 +275,7 @@ namespace InsetSMRNS
     {
         if (!viewData) return false;
         try {
-            return viewData->setActiveView(ICAO, viewMode, viewRunway, radarScreen, sectorFileLoader);
+            return viewData->setActiveView(ICAO, viewMode, viewRunway);
         } catch (...) {
             try { LogEvent("RequestSetActiveView: exception while setting active view"); } catch(...) {}
             return false;

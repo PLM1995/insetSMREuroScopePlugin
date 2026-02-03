@@ -69,7 +69,7 @@ namespace ViewDataNS
         }
     }
 
-    bool ViewData::setActiveView(std::string ICAO, VIEWMODE viewMode, std::string viewRunway, RadarScreenNS::RadarScreen* radarScreen, SectorFileLoadNS::SectorFileLoad* sectorFileLoader) {
+    bool ViewData::setActiveView(std::string ICAO, VIEWMODE viewMode, std::string viewRunway) {
         viewRunway = _strupr(_strdup(viewRunway.c_str()));
         if(plugin) plugin->LogEvent("setActiveView function called for " + ICAO + " at runway " + viewRunway);
 
@@ -190,7 +190,7 @@ namespace ViewDataNS
         // Update the active airport (hold the lock only for the assignment)
         {
             std::lock_guard<std::mutex> lock(ActiveViewMutex);
-            activeView = { ICAO, RelevantGeoNames, RelevantRegionNames, RelevantExtraLabelsNames, ExtraLabelsColour, viewCoordinates };
+            activeView = { ICAO, RelevantGeoNames, RelevantRegionNames, RelevantExtraLabelsNames, ExtraLabelsColour, viewCoordinates, viewMode, viewRunway };
         }
 
         // Re-load the sector data (as the sector file loading is airport specific).
@@ -199,7 +199,7 @@ namespace ViewDataNS
         // same mutex (causing deadlock) or perform I/O that could block.
         try {
             if(plugin) plugin->LogEvent("Calling SectorFileLoad::LoadSectorFile");
-            if (sectorFileLoader) sectorFileLoader->LoadSectorFile();
+            if (plugin) plugin->GetSectorFileLoader()->LoadSectorFile();
         } catch (const std::exception &ex) {
             if(plugin) plugin->LogEvent(std::string("Exception loading sector file: ") + ex.what());
             // non-fatal: continue without crashing the plugin
@@ -208,10 +208,7 @@ namespace ViewDataNS
         // Obtain a snapshot of active view to read SMR view coordinates safely
         viewCoordinates = getActiveView().viewCoordinates;
         // Set Radar View Inset Area appropriately
-        if (radarScreen) radarScreen->SetInsetViewArea(viewCoordinates);
-
-        // Persist the state (save these settings to asr)
-        if (radarScreen) radarScreen->OnAsrContentToBeSaved();
+        if (plugin) plugin->GetRadarScreen()->SetInsetViewArea(viewCoordinates);
 
         return true; // Successfully set active view
     }
