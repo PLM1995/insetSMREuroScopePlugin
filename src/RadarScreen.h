@@ -35,7 +35,7 @@ namespace RadarScreenNS
 
         bool SetShowingInsetSMR(bool show);
 
-        void SetInsetViewArea(InsetSMRNS::ViewCoordinates viewArea);
+        void SetInsetViewArea(ViewDataNS::ViewData::ViewCoordinates viewArea);
 
         void SetScaleFactor(int newScaleFactor);
 
@@ -44,6 +44,8 @@ namespace RadarScreenNS
         void ToggleLabels();
 
         void resetTopLeftPosition();
+
+        bool setActiveView(std::string ICAO, enum ViewDataNS::ViewData::VIEWMODE viewMode, std::string viewRunway = "");
 
     private:
         // Initially top-left corner
@@ -76,8 +78,8 @@ namespace RadarScreenNS
         std::mutex showLabelsMutex;
         bool areLabelsShown();
 
-        InsetSMRNS::ViewCoordinates insetViewArea = { -4.453889, 55.861389, -4.416389, 55.880833 }; // Default is EGPF
-        InsetSMRNS::ViewCoordinates getInsetViewArea();
+        ViewDataNS::ViewData::ViewCoordinates insetViewArea = { -4.453889, 55.861389, -4.416389, 55.880833 }; // Default is EGPF
+        ViewDataNS::ViewData::ViewCoordinates getInsetViewArea();
         std::mutex insetViewAreaMutex;
 
         int scaleFactor = 3;

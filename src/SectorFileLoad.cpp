@@ -131,7 +131,7 @@ namespace SectorFileLoadNS {
     void SectorFileLoad::LoadSectorFile() {
         try {
             if (plugin) plugin->LogEvent("LoadSectorFile: entry");
-            InsetSMRNS::InsetSMR::View activeView;
+            ViewDataNS::ViewData::View activeView;
 
             if (plugin) {
                 try {

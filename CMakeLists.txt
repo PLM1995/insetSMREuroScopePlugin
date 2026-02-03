@@ -59,6 +59,7 @@ SET(SOURCE_FILES
     src/SectorFileLoad.cpp
     src/SectorFileLoad.h
     src/Version.h
+    src/ViewData.cpp
     src/ViewData.h
 )
 

@@ -115,7 +115,7 @@ namespace RadarScreenNS{
             SelectClipRgn(hDC, clipRgn);
 
             // Get the area to view
-            InsetSMRNS::ViewCoordinates viewArea = getInsetViewArea();
+            ViewDataNS::ViewData::ViewCoordinates viewArea = getInsetViewArea();
 
             // Evaluate view ranges (for scaling)
             double lonRange = viewArea.maxViewLon - viewArea.minViewLon;
@@ -486,7 +486,7 @@ namespace RadarScreenNS{
 
         if (plugin) plugin->LogEvent("About to read asr values for view area.");
 
-        InsetSMRNS::ViewCoordinates viewCoordinates = {};
+        ViewDataNS::ViewData::ViewCoordinates viewCoordinates = {};
         bool gotMinLon = false, gotMinLat = false, gotMaxLon = false, gotMaxLat = false;
         if ((prefered_value = GetDataFromAsr("minViewLon")) != NULL) {
             if (plugin) plugin->LogEvent(std::string("ASR minViewLon raw='") + prefered_value + "'");
@@ -519,6 +519,7 @@ namespace RadarScreenNS{
         if (gotMinLon && gotMinLat && gotMaxLon && gotMaxLat) {
             SetInsetViewArea(viewCoordinates);
         }
+        // TODO: Need to set regions and geos and labels appropriately as well, not just view area - i.e. call setActiveView() instead
 
         // Now apply the other values we read earlier so persistence happens after all reads
         setInsetTopLeftPosition(position_x, position_y);
@@ -566,6 +567,11 @@ namespace RadarScreenNS{
         return insetTopLeftPosition;
     }
 
+    ViewDataNS::ViewData::ViewCoordinates RadarScreen::getInsetViewArea() {
+        std::lock_guard<std::mutex> lock(insetViewAreaMutex);
+        return insetViewArea;
+    }
+
     bool RadarScreen::isShowingInsetSMR() {
         std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
         return showingInsetSMR;
@@ -589,7 +595,7 @@ namespace RadarScreenNS{
         return true; // State changed
     }
 
-    void RadarScreen::SetInsetViewArea(InsetSMRNS::ViewCoordinates viewArea) {
+    void RadarScreen::SetInsetViewArea(ViewDataNS::ViewData::ViewCoordinates viewArea) {
         {
             std::lock_guard<std::mutex> lock(insetViewAreaMutex);
             insetViewArea = viewArea;
@@ -606,6 +612,27 @@ namespace RadarScreenNS{
             scaleFactor = newScaleFactor;
         }
         // Persist the state
+        OnAsrContentToBeSaved();
+    }
+
+    bool RadarScreen::setActiveView(std::string ICAO, enum ViewDataNS::ViewData::VIEWMODE viewMode, std::string viewRunway) {
+        if (!plugin) return false;
+        return plugin->RequestSetActiveView(ICAO, viewMode, viewRunway);
+    }
+
+    void RadarScreen::SetInsetSMRMinimised(bool minimised) {
+        {
+            std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
+            insetSMRMinimised = minimised;
+        }
+        OnAsrContentToBeSaved();
+    }
+
+    void RadarScreen::ToggleInsetSMRMinimised() {
+        {
+            std::lock_guard<std::mutex> lock(showingInsetSMRMutex);
+            insetSMRMinimised = !insetSMRMinimised;
+        }
         OnAsrContentToBeSaved();
     }
 
@@ -645,26 +672,6 @@ namespace RadarScreenNS{
             insetTopLeftPosition = { defaultInsetLeft, defaultInsetTop };
         }
         if (plugin) plugin->DisplayMessage("Now at default top-left corner", "Reset Position");
-        // Persist the state
-        OnAsrContentToBeSaved();
-    }
-
-    InsetSMRNS::ViewCoordinates RadarScreen::getInsetViewArea() {
-        std::lock_guard<std::mutex> lock(insetViewAreaMutex);
-        InsetSMRNS::ViewCoordinates snapshot = insetViewArea;
-        return snapshot;
-    }
-
-    void RadarScreen::SetInsetSMRMinimised(bool minimised) {
-        std::lock_guard<std::mutex> lock(insetSMRMinimisedMutex);
-        insetSMRMinimised = minimised;
-    }
-
-    void RadarScreen::ToggleInsetSMRMinimised () {
-        {
-            std::lock_guard<std::mutex> lock(insetSMRMinimisedMutex);
-            insetSMRMinimised = !insetSMRMinimised;
-        }
         // Persist the state
         OnAsrContentToBeSaved();
     }

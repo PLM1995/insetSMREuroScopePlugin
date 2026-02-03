@@ -5,20 +5,54 @@
  * either version 3 of the License, or (at your option) any later version.
  */
 
-/* Simple POD for inset view coordinates and modes */
 #pragma once
 
-namespace InsetSMRNS {
-    struct ViewCoordinates {
-        double minViewLon;
-        double minViewLat;
-        double maxViewLon;
-        double maxViewLat;
-    };
+#include <string>
+#include <vector>
+#include <mutex>
 
-    enum VIEWMODE {
-        AIRPORT,
-        RUNWAY,
-        HOLDINGAREA
+// Forward declarations to avoid circular includes
+namespace InsetSMRNS { class InsetSMR; }
+namespace RadarScreenNS { class RadarScreen; }
+namespace SectorFileLoadNS { class SectorFileLoad; }
+
+namespace ViewDataNS {
+    class ViewData
+    {
+    public:
+        ViewData(InsetSMRNS::InsetSMR* pluginInstance);
+
+        struct ViewCoordinates {
+            double minViewLon;
+            double minViewLat;
+            double maxViewLon;
+            double maxViewLat;
+        };
+
+        enum VIEWMODE {
+            AIRPORT,
+            RUNWAY,
+            HOLDINGAREA
+        };
+
+        struct View {
+            std::string ICAO;
+            std::vector<std::string> RelevantGeoNames;
+            std::vector<std::string> RelevantRegionNames;
+            std::vector<std::string> RelevantExtraLabelsNames;
+            std::string ExtraLabelsColour;
+            ViewCoordinates viewCoordinates;
+            enum VIEWMODE activeViewMode;
+        };
+
+        View getActiveView();
+        bool setActiveView(std::string ICAO, VIEWMODE viewMode, std::string viewRunway, RadarScreenNS::RadarScreen* radarScreen, SectorFileLoadNS::SectorFileLoad* sectorFileLoader);
+
+    private:
+        View activeView = {};
+        std::mutex ActiveViewMutex;
+
+        // Pointer back to plugin instance (owner)
+        InsetSMRNS::InsetSMR* plugin = nullptr;
     };
 }

@@ -6,8 +6,10 @@
  */
 
 #pragma once
-#include "ViewData.h"
+// Forward declare ViewData to avoid circular include
+namespace ViewDataNS { class ViewData; }
 #include "SectorFileLoad.h"
+#include "ViewData.h"
 
 // Forward declare RadarScreen namespace/class to avoid circular include
 namespace RadarScreenNS { class RadarScreen; }
@@ -60,34 +62,19 @@ namespace InsetSMRNS
             bool valid = false;
         };
 
-        // ViewCoordinates is defined in ViewData.h
-
-        struct View {
-            std::string ICAO;
-            std::vector<std::string> RelevantGeoNames;
-            std::vector<std::string> RelevantRegionNames;
-            std::vector<std::string> RelevantExtraLabelsNames;
-            std::string ExtraLabelsColour;
-            ViewCoordinates viewCoordinates;
-            enum VIEWMODE activeViewMode;
-        };
-
         std::vector<RadarTargetSnapshot> getActiveRadarTargetSnapshots();
 
-        void SelectAircraftFromFlightPlan(const EuroScopePlugIn::CFlightPlan FlightPlan);
-        
-        View getActiveView();
+        ViewDataNS::ViewData::View getActiveView();
+        bool RequestSetActiveView(const std::string &ICAO, ViewDataNS::ViewData::VIEWMODE viewMode, const std::string &viewRunway = "");
 
-        bool setActiveView(std::string ICAO, enum VIEWMODE viewMode, std::string viewRunway = "");
+        void SelectAircraftFromFlightPlan(const EuroScopePlugIn::CFlightPlan FlightPlan);
 
     private:
         RadarScreenNS::RadarScreen* radarScreen = nullptr;
         SectorFileLoadNS::SectorFileLoad* sectorFileLoader = nullptr;
+        ViewDataNS::ViewData* viewData = nullptr;
         std::mutex ActiveRadarTargetsMutex;
         std::mutex LogMutex;
         std::vector<RadarTargetSnapshot> ActiveRadarTargets = {};
-
-        View activeView = {};
-        std::mutex ActiveViewMutex;
     };
 }
